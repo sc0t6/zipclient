@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://zipclient.lol">Website</a> ·
+  <a href="https://discord.gg/WrbbbhdFXT">Discord</a> ·
   <a href="https://github.com/sc0t6/zipclient/releases/latest">Download</a> ·
   <a href="#building-from-source">Build from source</a> ·
   <a href="#code-map">Code map</a>
