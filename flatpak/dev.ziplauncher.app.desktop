@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Zip Launcher
+GenericName=Minecraft Launcher
+Comment=Lightweight Minecraft: Java Edition launcher
+Exec=zip-launcher
+Icon=dev.ziplauncher.app
+Terminal=false
+Categories=Game;
+Keywords=minecraft;launcher;mods;fabric;forge;
+StartupWMClass=zip-launcher

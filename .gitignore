@@ -1,0 +1,15 @@
+node_modules/
+dist/
+release/
+src-tauri/target/
+src-tauri/gen/
+*.key
+.env
+config/build.env
+flatpak/build/
+flatpak/repo/
+.flatpak-builder/
+promo/
+.claude/
+UIReference.png
+UISourceCode.figcraft

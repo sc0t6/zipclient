@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Zip Launcher",
+  "mainBinaryName": "zip-launcher",
+  "version": "2.3.0",
+  "identifier": "dev.ziplauncher.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Zip",
+        "width": 1180,
+        "height": 700,
+        "minWidth": 940,
+        "minHeight": 560,
+        "decorations": false,
+        "shadow": true,
+        "resizable": true,
+        "center": true,
+        "visible": false,
+        "backgroundColor": "#262626"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob: https://cdn.modrinth.com https://media.forgecdn.net https://launchercontent.mojang.com https://*.modrinth.com https://horizon-rust.github.io https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "publisher": "Zip",
+    "copyright": "Zip Launcher",
+    "category": "Game",
+    "shortDescription": "Zip Minecraft Launcher",
+    "longDescription": "A lightweight Minecraft launcher with Vanilla, Fabric, Forge, NeoForge and Quilt support.",
+    "createUpdaterArtifacts": true,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "startMenuFolder": "Zip Launcher"
+      },
+      "wix": { "language": "en-US" }
+    },
+    "linux": {
+      "deb": { "section": "games", "recommends": ["x11-xserver-utils"] }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE2NDNFNTA1NjJBMDU2REIKUldUYlZxQmlCZVZERnFQRHlOS2VqNWZSaktVVHJZbThGdGRPQzJjWUJtNGVnSlB2Q2JEc1VPK1kK",
+      "endpoints": [],
+      "windows": { "installMode": "passive" }
+    }
+  }
+}

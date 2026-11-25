@@ -1,0 +1,40 @@
+id: dev.ziplauncher.app
+runtime: org.gnome.Platform
+runtime-version: "51"
+sdk: org.gnome.Sdk
+command: zip-launcher
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=x11
+  - --socket=pulseaudio
+  - --device=all
+  - --filesystem=home
+modules:
+  - name: xrandr
+    sources:
+      - type: archive
+        url: https://xorg.freedesktop.org/archive/individual/app/xrandr-1.5.3.tar.xz
+        sha256: f8dd7566adb74147fab9964680b6bbadee87cf406a7fcff51718a5e6949b841c
+  - name: zip-launcher
+    buildsystem: simple
+    sources:
+      - type: file
+        path: ../src-tauri/target/release/zip-launcher
+      - type: file
+        path: dev.ziplauncher.app.desktop
+      - type: file
+        path: dev.ziplauncher.app.metainfo.xml
+      - type: file
+        path: ../src-tauri/icons/128x128.png
+        dest-filename: icon-128.png
+      - type: file
+        path: ../src-tauri/icons/icon.png
+        dest-filename: icon-512.png
+    build-commands:
+      - install -Dm755 zip-launcher /app/bin/zip-launcher
+      - install -Dm644 dev.ziplauncher.app.desktop /app/share/applications/dev.ziplauncher.app.desktop
+      - install -Dm644 dev.ziplauncher.app.metainfo.xml /app/share/metainfo/dev.ziplauncher.app.metainfo.xml
+      - install -Dm644 icon-128.png /app/share/icons/hicolor/128x128/apps/dev.ziplauncher.app.png
+      - install -Dm644 icon-512.png /app/share/icons/hicolor/512x512/apps/dev.ziplauncher.app.png

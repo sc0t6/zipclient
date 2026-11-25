@@ -1,0 +1,42 @@
+{
+  "schema": 2,
+  "setup": { "completed": false, "step": 1 },
+  "general": {
+    "language": "en",
+    "startup_page": "home",
+    "after_launch": "keep",
+    "check_updates": true,
+    "update_endpoint": "https://example.com/zip/latest.json",
+    "skipped_update": "",
+    "notifications": true,
+    "confirm_exit": true,
+    "instances_dir": ""
+  },
+  "appearance": {
+    "theme": "dark",
+    "accent": "#7fcf8b",
+    "scale": 1.0,
+    "animations": "full",
+    "background": "image",
+    "background_dim": 0.78,
+    "follow_system_motion": true
+  },
+  "minecraft": {
+    "java_mode": "managed",
+    "java_path": "",
+    "memory_min": 512,
+    "memory_max": 4096,
+    "jvm_args": "",
+    "width": 0,
+    "height": 0,
+    "game_dir": "",
+    "default_account": ""
+  },
+  "downloads": { "concurrency": 12, "retries": 3, "timeout_secs": 30, "cache_limit_mb": 200 },
+  "advanced": {
+    "debug_logging": false,
+    "ms_client_id": "YOUR-AZURE-APPLICATION-CLIENT-ID",
+    "curseforge_api_key": "YOUR-CURSEFORGE-API-KEY",
+    "last_page": "home"
+  }
+}

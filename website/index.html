@@ -1,0 +1,288 @@
+ <!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; base-uri 'self'; form-action 'none'" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>Zip Client · A lightweight Minecraft launcher for Windows and Linux</title>
+    <meta name="description" content="Zip is a free, lightweight Minecraft: Java Edition launcher for Windows and Linux. Every version from rd-132211 to today, Fabric, Forge, NeoForge, Quilt and Horizon, mods, modpacks, skins and no telemetry. Produced by Krizuvo." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Zip Client · A lightweight Minecraft launcher" />
+    <meta property="og:description" content="Every Minecraft version, every major mod loader, Horizon in Rust, and zero telemetry. Free for Windows and Linux." />
+    <meta name="theme-color" content="#141414" />
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site" id="top">
+      <div class="wrap bar">
+        <a class="brand" href="#top"><img src="assets/icon.png" alt="" width="34" height="34" />Zip Client</a>
+        <nav class="links" id="nav" aria-label="Main">
+          <a href="#features">Features</a>
+          <a href="#horizon">Horizon</a>
+          <a href="#screenshots">Screenshots</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <a class="btn primary small" href="https://github.com/sc0t6/zipclient/releases/latest" rel="noopener">Download</a>
+        <button class="menu-toggle" type="button" aria-controls="nav" aria-expanded="false" aria-label="Open menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="wrap">
+          <span class="eyebrow"><span class="dot"></span>Free for Windows &amp; Linux · Version <span data-version>2.3.0</span></span>
+          <h1>Every Minecraft version. One light launcher.</h1>
+          <p class="lead">Zip installs and launches Minecraft: Java Edition from the very first build to the newest snapshot, with Fabric, Forge, NeoForge, Quilt, and Horizon, the game rewritten in Rust.</p>
+          <div class="cta">
+            <a class="btn primary" href="https://github.com/sc0t6/zipclient/releases/tag/Release" rel="noopener">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 16h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              Download
+            </a>
+            <a class="btn" href="#features">See what it does</a>
+          </div>
+          <p class="fineprint">No account with us. No ads. No telemetry. Produced by <a href="https://www.krizuvo.xyz/" rel="noopener">Krizuvo</a>.</p>
+          <div class="shot">
+            <img src="assets/screens/home.png" width="1888" height="1120" alt="The Zip Client home screen: latest version, recent instance, play button, accounts and news" />
+          </div>
+          <div class="strip">
+            <div class="stat"><b>rd-132211 → today</b><span>Every release, snapshot, beta and alpha</span></div>
+            <div class="stat"><b>6 ways to play</b><span>Vanilla, Fabric, Forge, NeoForge, Quilt, Horizon</span></div>
+            <div class="stat"><b>Windows &amp; Linux</b><span>Installer, portable, AppImage, .deb, Flatpak</span></div>
+            <div class="stat"><b>0 trackers</b><span>Your data stays on your PC</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features">
+        <div class="wrap">
+          <div class="section-head">
+            <div class="kicker">Features</div>
+            <h2>Everything a launcher should do, nothing it shouldn't.</h2>
+            <p>Built with a Rust core and a small native window, so it starts fast and stays out of the way while you play.</p>
+          </div>
+          <div class="grid">
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6l7-3 7 3-7 3-7-3zm0 4l7 3 7-3M3 14l7 3 7-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" /></svg></div>
+              <h3>Isolated instances</h3>
+              <p>Keep as many setups as you like, each with its own version, loader, mods, Java, memory and game folder. Duplicate, export, import and repair them.</p>
+            </div>
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.7" /><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg></div>
+              <h3>Mods, packs and shaders</h3>
+              <p>Search Modrinth and CurseForge, install with required dependencies, switch mods on and off, and update them in one click.</p>
+            </div>
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h12v12H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" /><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg></div>
+              <h3>Modpack imports</h3>
+              <p>Bring in Modrinth .mrpack files, CurseForge .zip packs and Prism Launcher instances. Files are checked and extracted safely.</p>
+            </div>
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 2L4 11h5l-1 7 7-9h-5l1-7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" /></svg></div>
+              <h3>Optimized Mode</h3>
+              <p>Zip reads the Minecraft version, the loader and your RAM, then picks memory and garbage-collector settings for you. It can warn you before the game runs out of memory.</p>
+            </div>
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.7" /><path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></svg></div>
+              <h3>Skins in 3D</h3>
+              <p>Preview skins on a rotating 3D model, switch between classic and slim arms, keep a library and upload a skin to your Minecraft profile.</p>
+            </div>
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.7" /><path d="M7 9V6.5a3 3 0 016 0V9" fill="none" stroke="currentColor" stroke-width="1.7" /></svg></div>
+              <h3>Secure sign-in</h3>
+              <p>Sign in with Microsoft on Microsoft's own page. Tokens stay protected on your PC, and your password never touches Zip.</p>
+            </div>
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.7" /><path d="M10 3a7 7 0 000 14z" fill="currentColor" /></svg></div>
+              <h3>Six themes</h3>
+              <p>Dark, OLED, Midnight, Ember, Forest and Light, any accent colour, UI scaling and reduced motion.</p>
+            </div>
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v4M10 13v4M3 10h4M13 10h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /><circle cx="10" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7" /></svg></div>
+              <h3>The right Java, automatically</h3>
+              <p>Zip downloads the Java version each Minecraft release needs and verifies every file, so old and new versions both just work.</p>
+            </div>
+            <div class="card">
+              <div class="ico"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10a6 6 0 0110.4-4M16 10a6 6 0 01-10.4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /><path d="M14.5 2.5v3.5H11M5.5 17.5V14H9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
+              <h3>Signed updates</h3>
+              <p>When a new version is out, Zip asks if you want it. Updates install only if their signature matches Zip's release key.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="horizon" class="horizon">
+        <div class="wrap split">
+          <div>
+            <div class="kicker">New · Horizon (Rust)</div>
+            <h2>Play Minecraft on Rust.</h2>
+            <p class="lead left">Pick <b>Horizon (Rust)</b> when you create an instance and Zip sets up Horizon, a from-scratch rewrite of Minecraft: Java Edition in Rust. It runs natively, without Java.</p>
+            <ul class="checks">
+              <li>Downloaded from Horizon's official releases and installed only if their signed checksums verify</li>
+              <li>Prepared once from your own Minecraft files, kept up to date automatically</li>
+              <li>Browse and install Horizon content mods right in Zip</li>
+              <li>Works with your Microsoft account or an offline profile</li>
+            </ul>
+            <p class="note">Horizon is an independent open-source project (MIT licence) by its own authors at github.com/horizon-rust. It is not made by Krizuvo and is not affiliated with Mojang or Microsoft.</p>
+          </div>
+          <div class="shot">
+            <img src="assets/screens/horizon.png" width="1888" height="1120" alt="The Horizon mod browser in Zip, listing Horizon content and native mods" loading="lazy" />
+          </div>
+        </div>
+      </section>
+
+      <section id="screenshots" class="gallery">
+        <div class="wrap">
+          <div class="section-head center">
+            <div class="kicker">Screenshots</div>
+            <h2>Take a look around.</h2>
+          </div>
+          <div class="tabs" role="tablist" aria-label="Screenshots">
+            <button role="tab" aria-selected="true" data-shot="mods">Mod browser</button>
+            <button role="tab" aria-selected="false" data-shot="home">Home</button>
+            <button role="tab" aria-selected="false" data-shot="create">New instance</button>
+            <button role="tab" aria-selected="false" data-shot="skins">Skins</button>
+            <button role="tab" aria-selected="false" data-shot="themes">Themes</button>
+          </div>
+          <figure>
+            <div class="shot">
+              <img id="gallery-img" src="assets/screens/mods.png" width="1888" height="1120" alt="Zip mod browser" loading="lazy" />
+            </div>
+            <figcaption id="gallery-cap">Search Modrinth and CurseForge and install with dependencies in one click.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="privacy">
+        <div class="wrap split flip">
+          <div class="section-head flat">
+            <div class="kicker">Privacy &amp; safety</div>
+            <h2>Your launcher, not a data collector.</h2>
+            <p>Zip has no telemetry, no analytics and no ads, and there is no Krizuvo account to make. It only connects to the services a feature needs, like Mojang for game files or Modrinth for mods.</p>
+            <p class="more"><a href="privacy.html">Read the Privacy Policy</a></p>
+          </div>
+          <div class="privacy-cards">
+            <div class="card"><h3>Stays on your PC</h3><p>Settings, instances, worlds and logs live in your own user profile.</p></div>
+            <div class="card"><h3>Protected tokens</h3><p>Microsoft sign-in tokens are encrypted with DPAPI on Windows and kept in a user-only file on Linux.</p></div>
+            <div class="card"><h3>Verified downloads</h3><p>Game files, Java, mods and Horizon builds are checked against their checksums.</p></div>
+            <div class="card"><h3>Signed updates</h3><p>Zip refuses any update that isn't signed with its release key.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="download" class="download">
+        <div class="wrap">
+          <div class="download-box">
+            <img class="icon" src="assets/icon.png" alt="" width="84" height="84" />
+            <h2>Get Zip Client</h2>
+            <p class="lead">Version <span data-version>2.3.0</span> for Windows 10 and 11 and 64-bit Linux.</p>
+            <div class="cta">
+              <a class="btn primary" href="https://github.com/sc0t6/zipclient/releases/latest" rel="noopener">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 16h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                Download
+              </a>
+            </div>
+            <div class="platforms">
+              <div class="platform">
+                <h3>Windows</h3>
+                <div class="files">
+                  <a class="btn small" href="https://github.com/sc0t6/zipclient/releases/latest/download/zip-setup-x64.exe" rel="noopener">Installer (.exe)</a>
+                  <a class="btn small" href="https://github.com/sc0t6/zipclient/releases/latest/download/zip-setup-x64.msi" rel="noopener">Installer (.msi)</a>
+                  <a class="btn small" href="https://github.com/sc0t6/zipclient/releases/latest/download/zip-portable-x64.exe" rel="noopener">Portable (.exe)</a>
+                </div>
+                <p class="req">Windows 10 or 11, 64-bit, with Microsoft Edge WebView2 (built into Windows 11).</p>
+              </div>
+              <div class="platform">
+                <h3>Linux</h3>
+                <div class="files">
+                  <a class="btn small" href="https://github.com/sc0t6/zipclient/releases/latest/download/Linux-Zip-Launcher-x86_64.AppImage" rel="noopener">AppImage</a>
+                  <a class="btn small" href="https://github.com/sc0t6/zipclient/releases/latest/download/Linux-Zip-Launcher-amd64.deb" rel="noopener">Debian / Ubuntu (.deb)</a>
+                  <a class="btn small" href="https://github.com/sc0t6/zipclient/releases/latest/download/Linux-Zip-Launcher-x86_64.flatpak" rel="noopener">Flatpak</a>
+                  <a class="btn small" href="https://github.com/sc0t6/zipclient/releases/latest/download/Linux-Zip-Launcher-Portable-x64.tar.gz" rel="noopener">Portable (.tar.gz)</a>
+                </div>
+                <p class="req">64-bit x86 Linux. The .deb and portable builds use your system's WebKitGTK 4.1.</p>
+              </div>
+            </div>
+            <div class="reqs">
+              <span>Minecraft: Java Edition for online play</span>
+            </div>
+            <p class="note">Downloads are served by GitHub. Windows SmartScreen may show a warning for new software; choose "More info" and "Run anyway" if you downloaded Zip from this page. On Linux, make the AppImage executable before you run it. By downloading you agree to the <a href="terms.html">Terms of Use</a>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq">
+        <div class="wrap faq">
+          <div class="section-head center">
+            <div class="kicker">FAQ</div>
+            <h2>Questions, answered.</h2>
+          </div>
+          <details>
+            <summary>Is Zip free?</summary>
+            <p>Yes. Zip is free to download and use, with no ads and no in-app purchases.</p>
+          </details>
+          <details>
+            <summary>Do I need to own Minecraft?</summary>
+            <p>To play online and on most servers you need a Microsoft account that owns Minecraft: Java Edition. Offline profiles are available for singleplayer and offline-mode servers only.</p>
+          </details>
+          <details>
+            <summary>Is Zip an official Minecraft launcher?</summary>
+            <p>No. Zip is an independent launcher produced by Krizuvo. It is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft. It downloads game files from Mojang's official servers.</p>
+          </details>
+          <details>
+            <summary>Is my Microsoft account safe?</summary>
+            <p>You sign in on Microsoft's own website with a one-time code, so Zip never sees your password. The tokens Zip receives are encrypted with Windows Data Protection on Windows, kept in a file only your user can read on Linux, and never leave your computer except to talk to Microsoft and Minecraft services.</p>
+          </details>
+          <details>
+            <summary>What is Horizon?</summary>
+            <p>Horizon is an independent open-source project that rewrites Minecraft: Java Edition in Rust. Zip can install and run it for you. Java mods do not run on Horizon; Horizon has its own mods.</p>
+          </details>
+          <details>
+            <summary>Where are my worlds and settings stored?</summary>
+            <p>On Windows in %APPDATA%\Zip, on Linux in ~/.local/share/Zip, and in ~/.var/app/dev.ziplauncher.app for the Flatpak. The portable versions keep everything in a ZipData folder next to the program.</p>
+          </details>
+          <details>
+            <summary>How do I uninstall Zip?</summary>
+            <p>On Windows, use "Apps &amp; features" in Windows Settings. On Linux, remove the package (sudo apt remove zip-launcher or flatpak uninstall dev.ziplauncher.app) or delete the AppImage. Your worlds stay in Zip's data folder until you delete it.</p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site">
+      <div class="wrap">
+        <div class="foot">
+          <div>
+            <a class="brand" href="#top"><img src="assets/icon.png" alt="" width="34" height="34" />Zip Client</a>
+            <p class="made">Produced by <a href="https://www.krizuvo.xyz/" rel="noopener">Krizuvo</a></p>
+          </div>
+          <div>
+            <h4>Product</h4>
+            <ul>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#download">Download</a></li>
+              <li><a href="https://github.com/sc0t6/zipclient" rel="noopener">GitHub</a></li>
+              <li><a href="https://github.com/sc0t6/zipclient/issues" rel="noopener">Support</a></li>
+              <li><a href="mailto:krizuvo@krizuvo.xyz">krizuvo@krizuvo.xyz</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Legal</h4>
+            <ul>
+              <li><a href="terms.html">Terms of Use</a></li>
+              <li><a href="privacy.html">Privacy Policy</a></li>
+              <li><a href="disclaimer.html">Legal Disclaimer</a></li>
+            </ul>
+          </div>
+        </div>
+        <p class="legal-line">NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Minecraft is a trademark of Mojang Synergies AB. Horizon is an independent project by its own authors. Other names are trademarks of their respective owners. © 2026 Krizuvo. All rights reserved.</p>
+      </div>
+    </footer>
+    <script src="assets/site.js"></script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.ziplauncher.app</id>
+  <name>Zip Launcher</name>
+  <summary>Lightweight Minecraft: Java Edition launcher</summary>
+  <developer id="xyz.krizuvo">
+    <name>Krizuvo</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <url type="homepage">https://github.com/sc0t6/zipclient</url>
+  <url type="bugtracker">https://github.com/sc0t6/zipclient/issues</url>
+  <launchable type="desktop-id">dev.ziplauncher.app.desktop</launchable>
+  <content_rating type="oars-1.1" />
+  <description>
+    <p>Zip installs and launches every Minecraft: Java Edition version with Vanilla, Fabric, Forge, NeoForge, Quilt and Horizon. It manages isolated instances, mods, modpacks and skins, and collects no telemetry.</p>
+    <p>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p>
+  </description>
+  <releases>
+    <release version="2.3.0" date="2026-11-22" />
+    <release version="2.2.0" date="2026-11-20" />
+    <release version="2.1.0" date="2026-11-02" />
+  </releases>
+</component>
