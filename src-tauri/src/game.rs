@@ -159,21 +159,6 @@ fn newest_crash_report(game_dir: &Path, since: std::time::SystemTime) -> Option<
     best.map(|b| b.1)
 }
 
-pub fn crash_reason(lines: &[String]) -> Option<String> {
-    let pattern = |l: &str| {
-        let lower = l.to_ascii_lowercase();
-        ["error", "exception", "could not", "unrecognized", "unsupported", "failed", "invalid"].iter().any(|k| lower.contains(k)) && !l.trim_start().starts_with("at ")
-    };
-    let picked: Vec<&String> = lines.iter().rev().filter(|l| pattern(l)).take(3).collect();
-    let chosen: Vec<String> = if picked.is_empty() {
-        lines.iter().rev().filter(|l| !l.trim().is_empty()).take(2).cloned().collect()
-    } else {
-        picked.into_iter().cloned().collect()
-    };
-    let text = chosen.into_iter().rev().map(|l| l.chars().take(300).collect::<String>()).collect::<Vec<_>>().join("\n");
-    (!text.is_empty()).then_some(text)
-}
-
 fn prune_launch_logs(dir: &Path) {
     let Ok(entries) = std::fs::read_dir(dir) else { return };
     let mut files: Vec<_> = entries.flatten().filter(|e| e.file_name().to_string_lossy().starts_with("launch-")).collect();
@@ -481,7 +466,10 @@ async fn prepare_and_spawn(app: &AppHandle, instance_id: &str, server: Option<St
         }
         let crashed = !killed && exit_code.map(|c| c != 0).unwrap_or(true);
         let crash_report = if crashed { newest_crash_report(&game_dir, started_system).map(|p| p.to_string_lossy().to_string()) } else { None };
-        let reason = if crashed { crash_reason(&logs(&id)) } else { None };
+        let reason = crashed.then(|| {
+            let report = crash_report.as_ref().and_then(|p| std::fs::read(p).ok()).map(|b| String::from_utf8_lossy(&b).into_owned());
+            crate::crash::analyze(&logs(&id), report.as_deref(), &game_dir.join("mods"))
+        });
         diagnostics::info(&format!("{id} exited with {exit_code:?} after {duration}s"));
         emit_state(&app, GameState {
             instance_id: id.clone(),
@@ -797,16 +785,6 @@ mod tests {
         assert_eq!(gc_used_after_mb("[GC pause (G1 Evacuation Pause) (young) 512M->123M(2048M), 0.0123 secs]"), Some(123));
         assert_eq!(gc_used_after_mb("[Full GC (Allocation Failure)  3G->2G(4G), 1.2 secs]"), Some(2048));
         assert_eq!(gc_used_after_mb("[main/INFO]: x->y"), None);
-    }
-
-    #[test]
-    fn crash_reason_picks_error_lines() {
-        let lines: Vec<String> = ["Starting", "Unrecognized VM option 'Foo'", "Error: Could not create the Java Virtual Machine.", "Error: A fatal exception has occurred. Program will exit."].iter().map(|s| s.to_string()).collect();
-        let reason = crash_reason(&lines).unwrap();
-        assert!(reason.starts_with("Unrecognized VM option"));
-        assert_eq!(reason.lines().count(), 3);
-        assert_eq!(crash_reason(&["".to_string()]), None);
-        assert_eq!(crash_reason(&["bye".to_string()]).as_deref(), Some("bye"));
     }
 
     #[test]

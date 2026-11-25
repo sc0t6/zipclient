@@ -163,7 +163,8 @@ export const useApp = defineStore("app", () => {
         api.instance(payload.instanceId).then(replaceInstance).catch(() => {});
         if (payload.state === "crashed") {
           const report = payload.crashReport;
-          notify.push("error", `${name} crashed`, payload.message ? `Exit code ${payload.exitCode ?? "unknown"}:\n${payload.message}` : `Exit code ${payload.exitCode ?? "unknown"}.`, {
+          notify.push("error", `${name} crashed`, payload.message ?? "Minecraft has crashed suddenly. Review logs manually.", {
+            sticky: true,
             action: report || payload.logFile ? { label: report ? "Open crash report" : "Open log", run: () => api.openFile(report ?? payload.logFile!) } : undefined,
           });
         }

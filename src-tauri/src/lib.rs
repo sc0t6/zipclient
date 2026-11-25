@@ -1,5 +1,6 @@
 mod auth;
 mod content;
+mod crash;
 mod diagnostics;
 mod error;
 mod game;

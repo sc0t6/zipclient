@@ -764,6 +764,26 @@ fn manifest_version(archive: &mut zip::ZipArchive<std::fs::File>) -> String {
         .unwrap_or_default()
 }
 
+pub fn mod_identity(path: &Path) -> Option<(String, String)> {
+    let mut archive = zip::ZipArchive::new(std::fs::File::open(path).ok()?).ok()?;
+    let pick = |id: Option<&str>, name: Option<&str>| {
+        let id = id.map(str::trim).filter(|i| !i.is_empty())?.to_ascii_lowercase();
+        let name = name.map(str::trim).filter(|n| !n.is_empty()).unwrap_or(id.as_str()).to_string();
+        Some((id, name))
+    };
+    if let Some(json) = zip_text(&mut archive, "fabric.mod.json").and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()) {
+        return pick(json["id"].as_str(), json["name"].as_str());
+    }
+    if let Some(json) = zip_text(&mut archive, "quilt.mod.json").and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()) {
+        let loader = &json["quilt_loader"];
+        return pick(loader["id"].as_str(), loader["metadata"]["name"].as_str());
+    }
+    let text = zip_text(&mut archive, "META-INF/neoforge.mods.toml").or_else(|| zip_text(&mut archive, "META-INF/mods.toml"))?;
+    let toml = toml::from_str::<toml::Value>(&text).ok()?;
+    let first = toml.get("mods")?.as_array()?.first()?;
+    pick(first.get("modId").and_then(|v| v.as_str()), first.get("displayName").and_then(|v| v.as_str()))
+}
+
 pub fn local_meta(path: &Path) -> Option<LocalMeta> {
     if path.is_dir() {
         let icon = std::fs::read(path.join("pack.png")).ok().filter(|b| b.len() <= ICON_LIMIT && image_mime(b).is_some());
@@ -1151,6 +1171,7 @@ mod tests {
         let (_d, p) = jar(&[("fabric.mod.json", br#"{"id":"cool","name":"Cool Mod","version":"1.2.3","icon":{"16":"a.png","128":"assets/cool/icon.png"}}"#), ("assets/cool/icon.png", png)]);
         let m = local_meta(&p).unwrap();
         assert_eq!((m.name.as_str(), m.version.as_str(), m.icon.as_deref()), ("Cool Mod", "1.2.3", Some(png)));
+        assert_eq!(mod_identity(&p), Some(("cool".into(), "Cool Mod".into())));
         let (_d, p) = jar(&[("META-INF/mods.toml", b"modLoader=\"javafml\"
 [[mods]]
 modId=\"x\"
@@ -1162,6 +1183,7 @@ Implementation-Version: 4.5
 "), ("logo.png", png)]);
         let m = local_meta(&p).unwrap();
         assert_eq!((m.name.as_str(), m.version.as_str(), m.icon.is_some()), ("Forge Thing", "4.5", true));
+        assert_eq!(mod_identity(&p), Some(("x".into(), "Forge Thing".into())));
         let (_d, p) = jar(&[("pack.mcmeta", b"{}"), ("pack.png", png)]);
         assert!(local_meta(&p).unwrap().icon.is_some());
     }
