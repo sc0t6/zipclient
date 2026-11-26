@@ -62,7 +62,7 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
 .pick.letter {
   font-weight: 700;
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 </style>

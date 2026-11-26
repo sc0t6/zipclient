@@ -83,7 +83,7 @@ onUnmounted(() => unlisten?.());
 }
 
 .state {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--running);
 }
 
@@ -94,7 +94,7 @@ onUnmounted(() => unlisten?.());
   border-radius: var(--r-row);
   padding: 6px 8px;
   font-family: ui-monospace, Consolas, monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   user-select: text;
   -webkit-user-select: text;
 }

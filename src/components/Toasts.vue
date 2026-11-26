@@ -91,7 +91,7 @@ const levelIcon: Record<Level, string> = {
 .title {
   flex: 1;
   font-weight: 600;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 .x {
@@ -123,7 +123,7 @@ const levelIcon: Record<Level, string> = {
   gap: 6px;
   align-items: flex-start;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   line-height: 1.35;
   word-break: break-word;
   max-height: 120px;
@@ -146,7 +146,7 @@ const levelIcon: Record<Level, string> = {
 
 .action {
   margin-top: 8px;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   padding: 4px 8px;
   border-radius: var(--r-small);
   border: 1px solid var(--border);

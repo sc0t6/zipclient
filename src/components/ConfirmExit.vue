@@ -116,12 +116,12 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 }
 
 .question {
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 600;
 }
 
 .note {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
   margin-top: 3px;
 }
@@ -141,7 +141,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
   align-items: center;
   gap: 10px;
   padding: 0 10px;
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
   font-style: italic;
   transition: background var(--t-fast), transform var(--t-fast) var(--ease), border-color var(--t-fast);
 }
@@ -199,7 +199,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 }
 
 .small {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   line-height: 1.2;
   text-align: left;
 }

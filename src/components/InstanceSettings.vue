@@ -281,7 +281,7 @@ section {
 
 h4 {
   margin: 0 0 2px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-weight: 600;
 }
 
@@ -308,7 +308,7 @@ label.inline {
 }
 
 .note {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
   margin: 2px 0 0;
 }
@@ -333,11 +333,11 @@ input[type="range"] {
   padding: 8px 12px;
   resize: vertical;
   font-family: ui-monospace, Consolas, monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
 }
 
 .banner {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   padding: 7px 10px;
   border-radius: var(--r-small);
   background: var(--accent-bg);
@@ -355,7 +355,7 @@ input[type="range"] {
   position: sticky;
   bottom: 0;
   align-self: flex-end;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
   opacity: 0;
   transition: opacity var(--t-med);

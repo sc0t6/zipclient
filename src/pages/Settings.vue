@@ -4,6 +4,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import Dropdown from "../components/Dropdown.vue";
 import Modal from "../components/Modal.vue";
 import Toggle from "../components/Toggle.vue";
+import UiEditor from "../components/UiEditor.vue";
 import { api, errorText, formatBytes, rangeFill, type JavaInstall, type SystemInfo } from "../api";
 import { useApp } from "../stores/app";
 import { useNotify } from "../stores/notify";
@@ -25,6 +26,7 @@ const javaLoading = ref(false);
 const cacheBytes = ref(0);
 const diagnostics = ref<SystemInfo | null>(null);
 const resetOpen = ref(false);
+const editorOpen = ref(false);
 const installingUpdate = ref(false);
 const runtimeBusy = ref("");
 const accents = ["#7fcf8b", "#6fa8ff", "#c08cff", "#ff8fb1", "#ffb86b", "#ffe066", "#5fd3c6", "#e0e0e0"];
@@ -251,6 +253,10 @@ onMounted(() => {
 
         <template v-else-if="section === 'Appearance'">
           <h2>Appearance</h2>
+          <div class="opt edit-ui">
+            <div><b>Edit UI</b><small>Change the font, text size, background, corners and the layout of each page.</small></div>
+            <button class="btn primary" @click="editorOpen = true">Edit UI</button>
+          </div>
           <div class="opt col">
             <div><b>Theme</b></div>
             <div class="themes">
@@ -445,6 +451,7 @@ onMounted(() => {
       </div>
     </Transition>
 
+    <UiEditor v-if="editorOpen" @close="editorOpen = false" />
     <Modal v-if="resetOpen" title="Reset settings?" :width="400" @close="resetOpen = false">
       <div class="confirm">
         <p>All launcher settings return to their defaults. Accounts and instances are kept.</p>
@@ -478,7 +485,7 @@ onMounted(() => {
   text-align: left;
   padding: 8px 10px;
   border-radius: var(--r-row);
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   color: var(--text-dim);
   position: relative;
   border: 1px solid transparent;
@@ -500,7 +507,7 @@ onMounted(() => {
 
 .ver {
   margin-top: auto;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-faint);
   padding: 4px 8px;
 }
@@ -512,13 +519,13 @@ onMounted(() => {
 }
 
 h2 {
-  font-size: 20px;
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 600;
   margin: 0 0 10px;
 }
 
 h3 {
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 600;
   margin: 18px 0 6px;
   color: var(--text-dim);
@@ -542,6 +549,11 @@ h3 {
   border-color: var(--border);
 }
 
+.opt.edit-ui {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
 .opt.col {
   flex-direction: column;
   align-items: stretch;
@@ -549,14 +561,14 @@ h3 {
 }
 
 .opt b {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-weight: 600;
   display: block;
 }
 
 .opt small {
   display: block;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
   margin-top: 2px;
 }
@@ -599,7 +611,7 @@ h3 {
 .seg button {
   padding: 5px 12px;
   border-radius: var(--r-chip);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   transition: background var(--t-med), color var(--t-fast);
 }
@@ -628,7 +640,7 @@ h3 {
   padding: 6px;
   border-radius: var(--r-row);
   border: 1px solid var(--border-soft);
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
   position: relative;
   transition: border-color var(--t-fast), transform var(--t-fast) var(--ease), color var(--t-fast), box-shadow var(--t-fast);
@@ -729,11 +741,11 @@ h3 {
 
 .mono {
   font-family: ui-monospace, Consolas, monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
 }
 
 .path {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
   word-break: break-all;
 }
@@ -748,7 +760,7 @@ h3 {
   display: flex;
   gap: 10px;
   align-items: center;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   padding: 6px 8px;
   border-radius: var(--r-small);
   background: var(--panel);
@@ -756,7 +768,7 @@ h3 {
 }
 
 .tag {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale, 1));
   text-transform: uppercase;
   padding: 2px 6px;
   border-radius: 10px;
@@ -797,7 +809,7 @@ h3 {
   border: 1px solid var(--border-soft);
   border-radius: var(--r-row);
   padding: 10px;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-dim);
   overflow: auto;
   max-height: 220px;
@@ -809,7 +821,7 @@ h3 {
 }
 
 .legal {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-faint);
   margin-top: 16px;
 }

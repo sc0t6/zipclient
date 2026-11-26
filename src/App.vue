@@ -28,6 +28,13 @@ const fatal = ref("");
 
 const pages = { home: HomePage, instances: InstancesPage, servers: ServersPage, skins: SkinsPage, settings: SettingsPage };
 const current = computed(() => pages[app.page]);
+const bg = computed(() => settings.ui.background);
+const bgStyle = computed(() => ({
+  backgroundColor: bg.value.color,
+  backgroundImage: bg.value.mode === "image" && settings.backgroundImage ? `url(${settings.backgroundImage})` : "none",
+  filter: bg.value.blur ? `blur(${bg.value.blur}px)` : "none",
+  inset: `${-bg.value.blur * 2}px`,
+}));
 
 onMounted(async () => {
   try {
@@ -43,6 +50,10 @@ onMounted(async () => {
 
 <template>
   <div class="window">
+    <div v-if="settings.s && bg.mode !== 'theme'" class="app-bg">
+      <div class="app-bg-image" :style="bgStyle" />
+      <div class="app-bg-dim" :style="{ opacity: bg.dim }" />
+    </div>
     <TitleBar />
     <div v-if="ready" class="stage">
       <SideNav v-if="settings.s?.appearance.nav === 'side' || settings.s?.appearance.nav === 'icons'" :compact="settings.s?.appearance.nav === 'icons'" />
@@ -88,6 +99,29 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   background: var(--bg);
+  isolation: isolate;
+}
+
+.app-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.app-bg-image {
+  position: absolute;
+  background-size: cover;
+  background-position: center;
+  transition: background-color var(--t-slow);
+}
+
+.app-bg-dim {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  transition: opacity var(--t-med);
 }
 
 .stage {

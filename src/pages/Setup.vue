@@ -223,7 +223,7 @@ onMounted(async () => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   font-weight: 600;
   background: var(--panel-3);
   color: var(--text-faint);
@@ -277,7 +277,7 @@ onMounted(async () => {
 }
 
 h1 {
-  font-size: 24px;
+  font-size: calc(24px * var(--text-scale, 1));
   font-weight: 600;
   margin: 8px 0 6px;
 }
@@ -296,7 +296,7 @@ h1 {
   max-width: 500px;
   margin-top: 14px;
   text-align: left;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   line-height: 1.5;
   color: var(--text-dim);
 }
@@ -309,7 +309,7 @@ h1 {
 .inline {
   color: var(--link);
   text-decoration: underline;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 .checks {
@@ -329,7 +329,7 @@ h1 {
   padding: 7px 10px;
   border-radius: var(--r-row);
   background: var(--panel-2);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 .mark {
@@ -338,7 +338,7 @@ h1 {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   background: var(--danger-bg);
 }
 
@@ -349,7 +349,7 @@ h1 {
 .detail {
   text-align: right;
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
 }
 
 .accounts {
@@ -372,14 +372,14 @@ h1 {
 }
 
 .tag {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-faint);
 }
 
 .none {
   color: var(--text-ghost);
   font-style: italic;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 .center {
@@ -389,7 +389,7 @@ h1 {
 .btn.big {
   height: 38px;
   padding: 0 18px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
 }
 
 .choices {
@@ -422,7 +422,7 @@ h1 {
 }
 
 .choice span {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 
@@ -431,7 +431,7 @@ h1 {
   display: flex;
   gap: 8px;
   align-items: center;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 
@@ -440,11 +440,11 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 .inst .muted {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
 }
 
 .custom {
@@ -484,7 +484,7 @@ h1 {
   flex: 1;
   padding: 5px 10px;
   border-radius: var(--r-chip);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   transition: background var(--t-med), color var(--t-fast);
 }
@@ -586,7 +586,7 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
 }
 
 .mock-play {
@@ -614,7 +614,7 @@ h1 {
 }
 
 .count {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
 }
 </style>

@@ -137,7 +137,7 @@ onUnmounted(close);
   text-align: left;
   padding: 7px 10px;
   border-radius: var(--r-small);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   white-space: nowrap;
   transition: background var(--t-fast);
 }

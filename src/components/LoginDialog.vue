@@ -151,12 +151,12 @@ onUnmounted(() => {
 }
 
 .lead {
-  font-size: 24px;
+  font-size: calc(24px * var(--text-scale, 1));
   margin-top: 6px;
 }
 
 .code {
-  font-size: 64px;
+  font-size: calc(64px * var(--text-scale, 1));
   margin: 14px 0 0;
   letter-spacing: 0.12em;
   min-height: 80px;
@@ -173,7 +173,7 @@ onUnmounted(() => {
 
 .placeholder {
   color: var(--text-ghost);
-  font-size: 40px;
+  font-size: calc(40px * var(--text-scale, 1));
 }
 
 .spinner.big {
@@ -183,7 +183,7 @@ onUnmounted(() => {
 }
 
 .copied {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
   height: 14px;
   opacity: 0;
@@ -195,11 +195,11 @@ onUnmounted(() => {
 }
 
 .where {
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale, 1));
 }
 
 .link {
-  font-size: 18px;
+  font-size: calc(18px * var(--text-scale, 1));
   font-style: italic;
   color: var(--link);
   margin: 2px 0;
@@ -218,13 +218,13 @@ onUnmounted(() => {
   justify-content: center;
   gap: 8px;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 
 .err {
   color: var(--danger-text);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 .err.small {
@@ -239,7 +239,7 @@ onUnmounted(() => {
 
 .unconfigured p {
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   line-height: 1.5;
 }
 
@@ -250,7 +250,7 @@ onUnmounted(() => {
 }
 
 .hint {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   margin-bottom: 7px;
 }
 

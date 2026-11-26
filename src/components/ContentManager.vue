@@ -4,17 +4,56 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import Dropdown from "./Dropdown.vue";
 import ModItem from "./ModItem.vue";
+import ModDetails from "./ModDetails.vue";
 import KebabMenu, { type MenuItem } from "./KebabMenu.vue";
 import Modal from "./Modal.vue";
 import Toggle from "./Toggle.vue";
 import VirtualList from "./VirtualList.vue";
 import { api, errorText, formatBytes, formatCount, type ContentKind, type ContentVersion, type Instance, type InstalledFile, type SearchHit, type UpdateInfo } from "../api";
+import { project } from "../projects";
 import { useApp } from "../stores/app";
 import { useNotify } from "../stores/notify";
+import { useSettings } from "../stores/settings";
 
 const props = defineProps<{ instance: Instance; kind: ContentKind }>();
 const app = useApp();
 const notify = useNotify();
+const settings = useSettings();
+
+interface Detail {
+  source: string;
+  id: string;
+  title: string;
+  iconUrl: string;
+  author: string;
+  summary: string;
+  url: string;
+  hit: SearchHit | null;
+}
+
+const detail = ref<Detail | null>(null);
+const opened = reactive<Record<string, { loading: boolean; text: string; truncated: boolean }>>({});
+const rowHeight = computed(() => (settings.ui.mods.compact ? 64 : 84));
+
+function openHit(hit: SearchHit) {
+  detail.value = { source: hit.source, id: hit.id, title: hit.title, iconUrl: hit.iconUrl, author: hit.author, summary: hit.description, url: projectUrl(hit), hit };
+}
+
+function openFile(file: InstalledFile) {
+  if (!file.projectId || !["modrinth", "curseforge", "horizon"].includes(file.source)) return;
+  detail.value = { source: file.source, id: file.projectId, title: file.title, iconUrl: file.iconUrl, author: "", summary: "", url: fileUrl(file), hit: null };
+}
+
+async function toggleMore(hit: SearchHit) {
+  if (opened[hit.id]) {
+    delete opened[hit.id];
+    return;
+  }
+  opened[hit.id] = { loading: true, text: "", truncated: false };
+  const p = await project(hit.source, hit.id).catch(() => null);
+  const text = p?.text || hit.description;
+  if (opened[hit.id]) opened[hit.id] = { loading: false, text, truncated: text.length > 380 || (p?.gallery.length ?? 0) > 0 };
+}
 
 const labels: Record<string, { one: string; many: string; folder: string }> = {
   mod: { one: "mod", many: "Mods", folder: "mods" },
@@ -24,7 +63,10 @@ const labels: Record<string, { one: string; many: string; folder: string }> = {
 const label = computed(() => labels[props.kind]);
 
 const mode = ref<"installed" | "browse">("installed");
-const view = ref<"list" | "grid">(storedView());
+const view = computed({
+  get: () => settings.ui.mods.view,
+  set: (v: "list" | "grid") => settings.editUi((d) => (d.mods.view = v)),
+});
 let autoChecked = false;
 const files = ref<InstalledFile[]>([]);
 const loading = ref(false);
@@ -38,7 +80,7 @@ const query = ref("");
 const category = ref("");
 const sort = ref("relevance");
 const horizonMods = props.instance.loader === "horizon" && props.kind === "mod";
-const source = ref(horizonMods ? "horizon" : "modrinth");
+const source = ref(horizonMods ? "horizon" : settings.ui.sources.modrinth || !app.info?.curseforgeConfigured ? "modrinth" : "curseforge");
 const hits = ref<SearchHit[]>([]);
 const total = ref(0);
 const searching = ref(false);
@@ -53,29 +95,28 @@ let searchToken = 0;
 const installedBy = computed(() => new Map(files.value.filter((f) => f.projectId).map((f) => [f.projectId, f])));
 const folder = computed(() => (horizonMods ? "horizon-mods" : label.value.folder));
 
-function storedView(): "list" | "grid" {
-  try {
-    return localStorage.getItem("zip.contentView") === "grid" ? "grid" : "list";
-  } catch {
-    return "list";
-  }
-}
-
-watch(view, (v) => {
-  try {
-    localStorage.setItem("zip.contentView", v);
-  } catch {}
-});
 const shown = computed(() => {
   const q = filter.value.trim().toLowerCase();
   return q ? files.value.filter((f) => f.title.toLowerCase().includes(q) || f.fileName.toLowerCase().includes(q)) : files.value;
 });
 const updateCount = computed(() => Object.keys(updates.value).length);
 const vanillaMods = computed(() => props.kind === "mod" && props.instance.loader === "vanilla");
-const sourceOptions = computed(() => horizonMods ? [{ value: "horizon", label: "Horizon mods" }] : [
-  { value: "modrinth", label: "Modrinth" },
-  { value: "curseforge", label: "CurseForge", disabled: !app.info?.curseforgeConfigured, hint: app.info?.curseforgeConfigured ? "" : "API key needed" },
-]);
+const sourceOptions = computed(() =>
+  horizonMods
+    ? [{ value: "horizon", label: "Horizon mods" }]
+    : [
+        ...(settings.ui.sources.modrinth ? [{ value: "modrinth", label: "Modrinth" }] : []),
+        ...(settings.ui.sources.curseforge ? [{ value: "curseforge", label: "CurseForge", disabled: !app.info?.curseforgeConfigured, hint: app.info?.curseforgeConfigured ? "" : "Unavailable" }] : []),
+      ],
+);
+
+watch(
+  sourceOptions,
+  (options) => {
+    if (!options.some((o) => o.value === source.value)) source.value = options[0]?.value ?? "modrinth";
+  },
+  { immediate: true },
+);
 const sortOptions = [
   { value: "relevance", label: "Relevance" },
   { value: "downloads", label: "Downloads" },
@@ -373,7 +414,7 @@ onUnmounted(() => {
       </div>
       <VirtualList v-if="shown.length && view === 'list'" class="list" :items="shown" :item-height="52" :gap="5" :key-of="(f) => f.path">
         <template #default="{ item }">
-          <div class="file" :class="{ disabled: !item.enabled }">
+          <div class="file" :class="{ disabled: !item.enabled, openable: !!item.projectId }" @click="openFile(item)">
             <div class="file-icon">
               <img v-if="item.iconUrl" :src="item.iconUrl" loading="lazy" alt="" />
               <span v-else>{{ item.title.charAt(0).toUpperCase() }}</span>
@@ -385,20 +426,22 @@ onUnmounted(() => {
               </div>
             </div>
             <span class="src" :class="item.source">{{ item.source }}</span>
-            <button v-if="updateFor(item)" class="btn small primary" :disabled="busy[item.path]" @click="applyUpdate(item)">
-              <span v-if="busy[item.path]" class="spinner" />
-              Update to {{ updateFor(item)!.latest }}
-            </button>
-            <Toggle :model-value="item.enabled" :label="`Enable ${item.title}`" @update:model-value="toggle(item, $event)" />
-            <KebabMenu :items="fileMenu(item)" :size="28" />
-            <button class="rm" :class="{ confirm: pendingRemove === item.path }" :title="pendingRemove === item.path ? 'Click again to remove' : 'Remove'" @click="remove(item)">
-              {{ pendingRemove === item.path ? "Remove?" : "✕" }}
-            </button>
+            <div class="controls" @click.stop>
+              <button v-if="updateFor(item)" class="btn small primary" :disabled="busy[item.path]" @click="applyUpdate(item)">
+                <span v-if="busy[item.path]" class="spinner" />
+                Update to {{ updateFor(item)!.latest }}
+              </button>
+              <Toggle :model-value="item.enabled" :label="`Enable ${item.title}`" @update:model-value="toggle(item, $event)" />
+              <KebabMenu :items="fileMenu(item)" :size="28" />
+              <button class="rm" :class="{ confirm: pendingRemove === item.path }" :title="pendingRemove === item.path ? 'Click again to remove' : 'Remove'" @click="remove(item)">
+                {{ pendingRemove === item.path ? "Remove?" : "✕" }}
+              </button>
+            </div>
           </div>
         </template>
       </VirtualList>
       <div v-else-if="shown.length" class="grid scroll">
-        <div v-for="item in shown" :key="item.path" class="card" :class="{ disabled: !item.enabled, upd: updateFor(item) }">
+        <div v-for="item in shown" :key="item.path" class="card" :class="{ disabled: !item.enabled, upd: updateFor(item), openable: !!item.projectId }" @click="openFile(item)">
           <div class="card-top">
             <div class="file-icon big">
               <img v-if="item.iconUrl" :src="item.iconUrl" loading="lazy" alt="" />
@@ -408,9 +451,9 @@ onUnmounted(() => {
               <div class="file-title ellipsis" :title="item.title">{{ item.title }}</div>
               <div class="file-sub ellipsis" :title="item.fileName">{{ item.version || item.fileName }}</div>
             </div>
-            <KebabMenu :items="fileMenu(item)" :size="28" />
+            <KebabMenu :items="fileMenu(item)" :size="28" @click.stop />
           </div>
-          <div class="card-bottom">
+          <div class="card-bottom" @click.stop>
             <span class="src" :class="item.source">{{ item.source }}</span>
             <span class="grow" />
             <button v-if="updateFor(item)" class="btn small primary" :disabled="busy[item.path]" :title="`Update to ${updateFor(item)!.latest}`" @click="applyUpdate(item)">
@@ -437,13 +480,27 @@ onUnmounted(() => {
         <Dropdown v-model="source" :options="sourceOptions" class="w120" />
       </div>
       <div class="filters">Showing {{ instance.loader === "vanilla" || kind !== "mod" ? "" : instance.loader + " · " }}{{ instance.minecraft }} compatible results · {{ formatCount(total) }} found</div>
-      <VirtualList v-if="hits.length" class="list" :items="hits" :item-height="84" :gap="6" :key-of="(h) => h.id" @end="more">
+      <VirtualList
+        v-if="hits.length"
+        class="list"
+        :items="hits"
+        :item-height="rowHeight"
+        :height-of="(h) => rowHeight + (opened[h.id] ? 124 : 0)"
+        :gap="6"
+        :key-of="(h) => h.id"
+        @end="more"
+      >
         <template #default="{ item }">
           <ModItem
             :icon="item.iconUrl"
             :title="item.title"
             :subtitle="item.author ? `by ${item.author}` : ''"
-            :description="item.note || item.description"
+            :description="settings.ui.mods.descriptions || opened[item.id] ? item.note || item.description : ''"
+            :compact="settings.ui.mods.compact"
+            :expanded="!!opened[item.id]"
+            :extended="opened[item.id]?.text"
+            :extended-loading="opened[item.id]?.loading"
+            :truncated="opened[item.id]?.truncated"
             :chips="[
               ...(item.downloads ? [`↓ ${formatCount(item.downloads)}`] : []),
               ...(chosenVersion[item.id] ? [`Ver ${chosenVersion[item.id].versionNumber}`] : item.source === 'horizon' && item.latestVersion ? [`Ver ${item.latestVersion}`] : []),
@@ -458,6 +515,9 @@ onUnmounted(() => {
             :menu="hitMenu(item)"
             @install="install(item)"
             @version="chooseVersion(item)"
+            @open="openHit(item)"
+            @more="toggleMore(item)"
+            @all="openHit(item)"
           />
         </template>
         <template #footer>
@@ -484,6 +544,30 @@ onUnmounted(() => {
         <div v-else-if="!versionList.length" class="empty">No compatible versions for {{ instance.loader }} {{ instance.minecraft }}.</div>
       </div>
     </Modal>
+
+    <ModDetails
+      v-if="detail"
+      :key="detail.source + detail.id"
+      :source="detail.source"
+      :project-id="detail.id"
+      :title="detail.title"
+      :icon-url="detail.iconUrl"
+      :author="detail.author"
+      :summary="detail.summary"
+      :page-url="detail.url"
+      :action="
+        detail.hit
+          ? {
+              label: !detail.hit.installable ? 'Native' : installedBy.has(detail.hit.id) ? 'Switch' : '+ Install',
+              busy: busy[detail.hit.id],
+              disabled: !detail.hit.installable,
+              done: isInstalled(detail.hit),
+            }
+          : undefined
+      "
+      @action="detail?.hit && install(detail.hit)"
+      @close="detail = null"
+    />
   </div>
 </template>
 
@@ -516,13 +600,13 @@ onUnmounted(() => {
 }
 
 .filters {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
   font-style: italic;
 }
 
 .banner {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   padding: 7px 10px;
   border-radius: var(--r-small);
   background: var(--panel-2);
@@ -540,6 +624,7 @@ onUnmounted(() => {
 .list {
   flex: 1;
   min-height: 0;
+  padding-top: 3px;
 }
 
 .file {
@@ -550,11 +635,26 @@ onUnmounted(() => {
   padding: 0 10px;
   border-radius: var(--r-row);
   background: var(--panel-2);
-  transition: opacity var(--t-med), background var(--t-fast);
+  transition: opacity var(--t-med), background var(--t-fast), transform var(--t-med) var(--ease), filter var(--t-med) var(--ease);
 }
 
-.file:hover {
-  background: var(--chip-hover);
+.file:hover,
+.card:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.file.openable,
+.card.openable {
+  cursor: pointer;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  cursor: default;
 }
 
 .file.disabled {
@@ -582,18 +682,18 @@ onUnmounted(() => {
 }
 
 .file-title {
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 600;
 }
 
 .file-sub {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
   font-style: italic;
 }
 
 .src {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale, 1));
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 2px 6px;
@@ -616,7 +716,7 @@ onUnmounted(() => {
   height: 24px;
   border-radius: var(--r-small);
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   padding: 0 4px;
   transition: background var(--t-fast), color var(--t-fast);
   flex: none;
@@ -648,7 +748,7 @@ onUnmounted(() => {
   text-align: left;
   border-radius: var(--r-row);
   background: var(--panel);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   transition: background var(--t-fast);
 }
 
@@ -661,13 +761,13 @@ onUnmounted(() => {
 }
 
 .vsub {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-dim);
   margin-top: 2px;
 }
 
 .tag {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   padding: 2px 7px;
   border-radius: 10px;
   background: var(--panel-3);
@@ -737,11 +837,10 @@ onUnmounted(() => {
   border: 1px solid transparent;
   content-visibility: auto;
   contain-intrinsic-size: auto 100px;
-  transition: opacity var(--t-med), background var(--t-fast), border-color var(--t-fast);
+  transition: opacity var(--t-med), background var(--t-fast), border-color var(--t-fast), transform var(--t-med) var(--ease), filter var(--t-med) var(--ease);
 }
 
 .card:hover {
-  background: var(--chip-hover);
   border-color: var(--border-soft);
 }
 
@@ -773,7 +872,7 @@ onUnmounted(() => {
 }
 
 .vdate {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-faint);
   flex: none;
 }

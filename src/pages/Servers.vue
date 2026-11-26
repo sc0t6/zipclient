@@ -471,7 +471,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
   height: 28px;
   padding: 0 14px;
   border-radius: var(--r-chip);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   transition: background var(--t-med), color var(--t-fast);
 }
@@ -514,7 +514,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
   border: 1px solid var(--border);
   color: var(--text-faint);
   font-weight: 700;
-  font-size: 20px;
+  font-size: calc(20px * var(--text-scale, 1));
 }
 
 .favicon img {
@@ -539,21 +539,21 @@ onUnmounted(() => unlisten.forEach((u) => u()));
 }
 
 .name {
-  font-size: 14px;
+  font-size: calc(14px * var(--text-scale, 1));
   font-weight: 600;
   flex: none;
   max-width: 55%;
 }
 
 .addr {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
   font-style: italic;
   min-width: 0;
 }
 
 .motd {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   display: flex;
   align-items: center;
@@ -575,7 +575,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
 }
 
 .blank .hint {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
 }
 
@@ -593,7 +593,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
 }
 
 .pill-stat {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   padding: 2px 7px;
   border-radius: 10px;
   background: var(--accent-bg);
@@ -606,7 +606,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
 }
 
 .ver {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-faint);
   max-width: 130px;
 }
@@ -628,13 +628,13 @@ onUnmounted(() => unlisten.forEach((u) => u()));
   gap: 8px;
   text-align: center;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   max-width: 360px;
   padding: 30px 0;
 }
 
 .blank b {
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
   color: var(--text);
 }
 
@@ -646,7 +646,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
   border-radius: var(--r-row);
   border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
   background: color-mix(in srgb, var(--warn) 9%, var(--panel));
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   line-height: 1.45;
   color: var(--text-dim);
   flex: none;
@@ -654,7 +654,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
 
 .warning > b {
   color: var(--warn);
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
 }
 
 .warning.small {
@@ -704,7 +704,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
   border-radius: var(--r-row);
   background: var(--panel-4);
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -751,7 +751,7 @@ onUnmounted(() => unlisten.forEach((u) => u()));
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   margin-top: 4px;
 }
@@ -761,13 +761,13 @@ onUnmounted(() => unlisten.forEach((u) => u()));
 }
 
 .note {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
 }
 
 .err {
   color: var(--danger-text);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 .footer {

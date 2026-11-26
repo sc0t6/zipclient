@@ -147,7 +147,17 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="home">
+  <div
+    class="home"
+    :class="[
+      `hero-${settings.ui.home.hero}`,
+      {
+        swap: settings.ui.home.swap && settings.ui.home.accounts && settings.ui.home.news,
+        'one-bottom': settings.ui.home.accounts !== settings.ui.home.news,
+        'no-bottom': !settings.ui.home.accounts && !settings.ui.home.news,
+      },
+    ]"
+  >
     <section class="hero panel" :class="{ plain: settings.s?.appearance.background === 'none' }">
       <div class="bg" :style="{ backgroundImage: `url(${icons.background})` }" />
       <div class="hero-left">
@@ -207,7 +217,7 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <section class="accounts panel">
+    <section v-if="settings.ui.home.accounts" class="accounts panel">
       <div class="title">Accounts</div>
       <div class="acc-list scroll">
         <div v-for="a in app.accounts" :key="a.id" class="acc" :class="{ active: a.active && !a.needsRelogin }">
@@ -229,7 +239,7 @@ onUnmounted(() => {
       <button class="add-account" @click="app.loginOpen = true">+ Add an account</button>
     </section>
 
-    <section class="news panel">
+    <section v-if="settings.ui.home.news" class="news panel">
       <div class="news-side">
         <div class="news-title"><img :src="icons.news" class="icon" alt="" /> News</div>
         <div class="news-tabs">
@@ -285,6 +295,31 @@ onUnmounted(() => {
   padding: 10px 12px 12px;
 }
 
+.home.hero-small {
+  grid-template-rows: minmax(190px, 0.75fr) minmax(160px, 1fr);
+}
+
+.home.hero-large {
+  grid-template-rows: minmax(260px, 1.8fr) minmax(150px, 1fr);
+}
+
+.home.swap {
+  grid-template-columns: minmax(320px, 1.4fr) minmax(250px, 0.9fr);
+}
+
+.home.swap .accounts {
+  order: 2;
+}
+
+.home.one-bottom .accounts,
+.home.one-bottom .news {
+  grid-column: 1 / -1;
+}
+
+.home.no-bottom {
+  grid-template-rows: 1fr;
+}
+
 .hero {
   grid-column: 1 / -1;
   position: relative;
@@ -333,7 +368,7 @@ onUnmounted(() => {
 }
 
 h1 {
-  font-size: 24px;
+  font-size: calc(24px * var(--text-scale, 1));
   font-weight: 600;
   margin: 0 0 4px;
   white-space: nowrap;
@@ -352,7 +387,7 @@ h1 {
 }
 
 .line {
-  font-size: 19px;
+  font-size: calc(19px * var(--text-scale, 1));
   line-height: 25px;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
 }
@@ -368,7 +403,7 @@ h1 {
 }
 
 .total {
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   color: var(--text-faint);
 }
 
@@ -385,7 +420,7 @@ h1 {
   gap: 5px;
   width: 142px;
   justify-content: center;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-style: italic;
   margin-bottom: 5px;
   padding: 3px 6px;
@@ -428,7 +463,7 @@ h1 {
   gap: 8px;
   padding: 6px 8px;
   border-radius: var(--r-small);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   text-align: left;
   transition: background var(--t-fast);
 }
@@ -445,7 +480,7 @@ h1 {
 
 .pick-ver {
   margin-left: auto;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-faint);
   flex: none;
 }
@@ -465,7 +500,7 @@ h1 {
   color: var(--on-accent);
   border: 1px solid color-mix(in srgb, var(--accent) 70%, #000);
   overflow: hidden;
-  font-size: 20px;
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 18px var(--accent-glow);
@@ -513,11 +548,11 @@ h1 {
 }
 
 .play.busy .text {
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
 }
 
 .play .pct {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-weight: 600;
   color: inherit;
   opacity: 0.72;
@@ -586,7 +621,7 @@ h1 {
 }
 
 .phase {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-dim);
   height: 13px;
   margin-top: 4px;
@@ -601,7 +636,7 @@ h1 {
 }
 
 .tagline {
-  font-size: 20px;
+  font-size: calc(20px * var(--text-scale, 1));
   font-style: italic;
   margin-top: 20px;
   color: var(--text-dim);
@@ -644,7 +679,7 @@ h1 {
   line-height: 26px;
   background: var(--panel-3);
   font-weight: 700;
-  font-size: 14px;
+  font-size: calc(14px * var(--text-scale, 1));
   padding: 0 6px;
   border-radius: 0 0 8px 8px;
 }
@@ -657,7 +692,7 @@ h1 {
 
 .time {
   font-family: var(--font-clock);
-  font-size: 52px;
+  font-size: calc(52px * var(--text-scale, 1));
   line-height: 52px;
   margin-top: -2px;
   font-style: italic;
@@ -665,7 +700,7 @@ h1 {
 }
 
 .date {
-  font-size: 19px;
+  font-size: calc(19px * var(--text-scale, 1));
   display: flex;
   align-items: center;
   gap: 7px;
@@ -681,7 +716,7 @@ h1 {
 }
 
 .update {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-style: italic;
   margin-top: 12px;
   padding: 3px 9px;
@@ -707,7 +742,7 @@ h1 {
 
 .title {
   text-align: center;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -744,7 +779,7 @@ h1 {
 .acc-name {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
 }
 
 .nowrap {
@@ -758,7 +793,7 @@ h1 {
 }
 
 .acc-note {
-  font-size: 8px;
+  font-size: calc(8px * var(--text-scale, 1));
   color: var(--text-faint);
   margin-top: 1px;
 }
@@ -773,7 +808,7 @@ h1 {
   border-radius: var(--r-chip);
   background: var(--field);
   border: 1px solid var(--border-soft);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-style: italic;
   color: var(--text);
   transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
@@ -799,7 +834,7 @@ h1 {
   border-radius: var(--r-chip);
   background: transparent;
   border: 1px dashed var(--border-strong);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-style: italic;
   color: var(--text-dim);
   flex: none;
@@ -831,7 +866,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 19px;
+  font-size: calc(19px * var(--text-scale, 1));
   font-weight: 600;
 }
 
@@ -844,7 +879,7 @@ h1 {
 
 .news-tabs button {
   text-align: left;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   padding: 6px 9px;
   border-radius: var(--r-chip);
   color: var(--text-dim);
@@ -899,18 +934,18 @@ h1 {
 }
 
 .news-head {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-weight: 600;
 }
 
 .news-sub {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   font-style: italic;
   color: var(--text-dim);
 }
 
 .news-date {
-  font-size: 9px;
+  font-size: calc(9px * var(--text-scale, 1));
   color: var(--text-faint);
   flex: none;
   font-variant-numeric: tabular-nums;
@@ -918,7 +953,7 @@ h1 {
 
 .end {
   text-align: center;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   font-style: italic;
   color: var(--text-ghost);
   padding: 4px;
@@ -929,7 +964,7 @@ h1 {
 
 .retry {
   text-decoration: underline;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 

@@ -6,17 +6,51 @@ import Modal from "./Modal.vue";
 import Toggle from "./Toggle.vue";
 import VersionPicker from "./VersionPicker.vue";
 import ModItem from "./ModItem.vue";
+import ModDetails from "./ModDetails.vue";
 import IconPicker from "./IconPicker.vue";
 import { randomPreset } from "../presets";
 import { api, errorText, formatCount, loaderNames, type ImportResult, type Loader, type OptimizePreset, type SearchHit } from "../api";
 import { importFile, importing, importPath, installModpack, type ImportKind } from "../importer";
 import { icons } from "../icons";
+import { project } from "../projects";
 import { useApp } from "../stores/app";
 import { useNotify } from "../stores/notify";
+import { useSettings } from "../stores/settings";
 
 const emit = defineEmits<{ close: [] }>();
 const app = useApp();
 const notify = useNotify();
+const settings = useSettings();
+const packDetail = ref<SearchHit | null>(null);
+const packView = computed(() => {
+  const hit = packDetail.value;
+  if (!hit) return null;
+  return {
+    source: "modrinth",
+    projectId: hit.id,
+    title: hit.title,
+    iconUrl: hit.iconUrl,
+    author: hit.author,
+    summary: hit.description,
+    pageUrl: `https://modrinth.com/modpack/${hit.slug}`,
+    action: { label: "+ Install", busy: installingPack.value === hit.id, disabled: importing.value && installingPack.value !== hit.id },
+  };
+});
+const tabs = computed(() => [["new", "Create"], ...(settings.ui.sources.modrinth ? [["modpack", "Modpacks"]] : []), ["import", "Import"]] as ["new" | "modpack" | "import", string][]);
+const packMore = ref<Record<string, { loading: boolean; text: string; truncated: boolean }>>({});
+
+async function togglePackMore(hit: SearchHit) {
+  if (packMore.value[hit.id]) {
+    const next = { ...packMore.value };
+    delete next[hit.id];
+    packMore.value = next;
+    return;
+  }
+  packMore.value = { ...packMore.value, [hit.id]: { loading: true, text: "", truncated: false } };
+  const p = await project(hit.source, hit.id).catch(() => null);
+  const text = p?.text || hit.description;
+  if (packMore.value[hit.id]) packMore.value = { ...packMore.value, [hit.id]: { loading: false, text, truncated: text.length > 380 || (p?.gallery.length ?? 0) > 0 } };
+}
 
 const tab = ref<"new" | "modpack" | "import">("new");
 const name = ref("");
@@ -183,7 +217,7 @@ onMounted(() => {
 <template>
   <Modal title="New instance" :width="620" :dismissable="!importing" @close="!importing && emit('close')">
     <div class="tabs">
-      <button v-for="t in [['new', 'Create'], ['modpack', 'Modpacks'], ['import', 'Import']]" :key="t[0]" class="tab" :class="{ on: tab === t[0] }" :disabled="importing" @click="tab = t[0] as typeof tab">
+      <button v-for="t in tabs" :key="t[0]" class="tab" :class="{ on: tab === t[0] }" :disabled="importing" @click="tab = t[0]">
         {{ t[1] }}
       </button>
     </div>
@@ -242,7 +276,14 @@ onMounted(() => {
           :disabled="importing && installingPack !== hit.id"
           install-label="+ Install"
           :menu="packMenu(hit)"
+          :expanded="!!packMore[hit.id]"
+          :extended="packMore[hit.id]?.text"
+          :extended-loading="packMore[hit.id]?.loading"
+          :truncated="packMore[hit.id]?.truncated"
           @install="installPack(hit)"
+          @open="packDetail = hit"
+          @more="togglePackMore(hit)"
+          @all="packDetail = hit"
         />
         <div v-if="packsLoading" class="empty"><span class="spinner" /></div>
         <div v-else-if="!packs.length" class="empty">No modpacks found.</div>
@@ -275,6 +316,7 @@ onMounted(() => {
       </div>
       <p class="muted-text">Files are validated and extracted safely into a new instance.</p>
     </div>
+    <ModDetails v-if="packView" v-bind="packView" @action="packDetail && installPack(packDetail)" @close="packDetail = null" />
   </Modal>
 </template>
 
@@ -292,7 +334,7 @@ onMounted(() => {
   flex: 1;
   height: 28px;
   border-radius: var(--r-chip);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   transition: background var(--t-med), color var(--t-fast);
 }
@@ -329,12 +371,12 @@ onMounted(() => {
 }
 
 .opt b {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   display: block;
 }
 
 .opt small {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
 }
 
@@ -413,12 +455,12 @@ onMounted(() => {
 }
 
 .drop b {
-  font-size: 14px;
+  font-size: calc(14px * var(--text-scale, 1));
   max-width: 100%;
 }
 
 .drop small {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 
@@ -476,13 +518,13 @@ onMounted(() => {
 }
 
 .import-card span {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 
 .muted-text {
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   margin: 4px 0;
 }
 
@@ -490,7 +532,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
   margin-top: 6px;
 }

@@ -1,10 +1,13 @@
 <script setup lang="ts" generic="T">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
-const props = withDefaults(defineProps<{ items: T[]; itemHeight: number; gap?: number; overscan?: number; keyOf?: (item: T, index: number) => string | number }>(), {
-  gap: 0,
-  overscan: 6,
-});
+const props = withDefaults(
+  defineProps<{ items: T[]; itemHeight: number; heightOf?: (item: T) => number; gap?: number; overscan?: number; keyOf?: (item: T, index: number) => string | number }>(),
+  {
+    gap: 0,
+    overscan: 6,
+  },
+);
 const emit = defineEmits<{ end: [] }>();
 
 const viewport = ref<HTMLElement | null>(null);
@@ -14,10 +17,29 @@ let frame = 0;
 let observer: ResizeObserver | null = null;
 
 const stride = computed(() => props.itemHeight + props.gap);
-const start = computed(() => Math.max(0, Math.floor(scrollTop.value / stride.value) - props.overscan));
-const end = computed(() => Math.min(props.items.length, Math.ceil((scrollTop.value + height.value) / stride.value) + props.overscan));
+const sizeOf = (item: T) => (props.heightOf ? props.heightOf(item) : props.itemHeight);
+const offsets = computed(() => {
+  const out = [0];
+  for (const item of props.items) out.push(out[out.length - 1] + sizeOf(item) + props.gap);
+  return out;
+});
+
+function indexAt(y: number) {
+  const list = offsets.value;
+  let lo = 0;
+  let hi = props.items.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (list[mid + 1] <= y) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+const start = computed(() => Math.max(0, indexAt(scrollTop.value) - props.overscan));
+const end = computed(() => Math.min(props.items.length, indexAt(scrollTop.value + height.value) + 1 + props.overscan));
 const visible = computed(() => props.items.slice(start.value, end.value).map((item, i) => ({ item, index: start.value + i })));
-const total = computed(() => Math.max(0, props.items.length * stride.value - props.gap));
+const total = computed(() => Math.max(0, offsets.value[props.items.length] - props.gap));
 
 function onScroll() {
   if (frame) return;
@@ -62,7 +84,7 @@ onUnmounted(() => {
         v-for="entry in visible"
         :key="keyOf ? keyOf(entry.item, entry.index) : entry.index"
         class="vlist-item"
-        :style="{ transform: `translateY(${entry.index * stride}px)`, height: `${itemHeight}px` }"
+        :style="{ transform: `translateY(${offsets[entry.index]}px)`, height: `${sizeOf(entry.item)}px` }"
       >
         <slot :item="entry.item" :index="entry.index" />
       </div>

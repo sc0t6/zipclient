@@ -2,11 +2,11 @@
 import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { IdleAnimation, SkinViewer } from "skinview3d";
-import Toggle from "../components/Toggle.vue";
 import { api, errorText, type SkinEntry } from "../api";
 import { bodyFront, looksSlim, texture } from "../skin";
 import { useApp } from "../stores/app";
 import { useNotify } from "../stores/notify";
+import { useSettings } from "../stores/settings";
 
 defineOptions({ name: "SkinsPage" });
 
@@ -21,6 +21,8 @@ interface Card {
 
 const app = useApp();
 const notify = useNotify();
+const settings = useSettings();
+const layout = computed(() => settings.ui.skins);
 
 const canvas = ref<HTMLCanvasElement | null>(null);
 const stage = ref<HTMLElement | null>(null);
@@ -34,6 +36,7 @@ const layers = ref(true);
 const animate = ref(false);
 const autoRotate = ref(false);
 const wearing = ref("");
+const filter = ref("");
 let idleTimer = 0;
 let resizeObserver: ResizeObserver | null = null;
 
@@ -42,6 +45,10 @@ const cards = computed<Card[]>(() => [
   ...(original.value ? [original.value] : []),
   ...library.value.map((s) => ({ ...s, thumb: thumbs.value[s.id + s.variant] ?? "", original: false })),
 ]);
+const shown = computed(() => {
+  const q = filter.value.trim().toLowerCase();
+  return q ? cards.value.filter((c) => c.name.toLowerCase().includes(q)) : cards.value;
+});
 const preview = computed(() => cards.value.find((c) => c.id === previewId.value) ?? cards.value[0] ?? null);
 const selectedId = computed(() => {
   const a = account.value;
@@ -56,7 +63,7 @@ async function loadOriginal() {
   try {
     const dataUrl = await texture(a?.skinUrl, a?.skinVariant);
     const variant = a?.skinVariant === "slim" ? "slim" : "classic";
-    original.value = { id: "original", name: "Original", variant, dataUrl, thumb: await bodyFront(dataUrl, variant === "slim"), original: true };
+    original.value = { id: "original", name: "Profile skin", variant, dataUrl, thumb: await bodyFront(dataUrl, variant === "slim"), original: true };
   } catch {
     original.value = null;
   }
@@ -95,7 +102,7 @@ function createViewer() {
   const rect = stage.value!.getBoundingClientRect();
   const v = new SkinViewer({ canvas: canvas.value, width: Math.max(rect.width, 50), height: Math.max(rect.height, 50), pixelRatio: Math.min(window.devicePixelRatio, 2) });
   v.fov = 50;
-  v.zoom = 0.68;
+  v.zoom = 0.6;
   v.controls.enableRotate = true;
   v.controls.enableZoom = true;
   v.controls.enablePan = false;
@@ -214,47 +221,91 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="skins">
-    <section class="preview">
+  <div class="skins" :class="[`preview-${layout.preview}`, `size-${layout.size}`]">
+    <section class="showcase panel">
+      <div class="show-head">
+        <div class="who ellipsis">{{ account?.name ?? "No account" }}</div>
+        <div class="tools">
+          <button class="tool" :class="{ on: layers }" title="Outer layer" @click="layers = !layers">
+            <svg viewBox="0 0 16 16"><path d="M8 2 14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3" /></svg>
+          </button>
+          <button class="tool" :class="{ on: animate }" title="Animate" @click="animate = !animate">
+            <svg viewBox="0 0 16 16"><path d="M5 3v10l8-5z" /></svg>
+          </button>
+          <button class="tool" :class="{ on: autoRotate }" title="Auto rotate" @click="autoRotate = !autoRotate">
+            <svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.5M13 2v3h-3" /></svg>
+          </button>
+        </div>
+      </div>
       <div ref="stage" class="stage" @pointerdown="wake" @pointermove="(e) => e.buttons && wake()" @wheel.passive="wake">
+        <div class="floor" />
         <canvas ref="canvas" />
       </div>
-      <div class="player-name ellipsis">{{ account?.name ?? "No account" }}</div>
-    </section>
-    <section class="side">
-      <div class="top">
-        <div class="using ellipsis">You are currently using: {{ account?.name ?? "nobody" }}</div>
-        <div class="controls">
-          <label><Toggle v-model="layers" label="Outer layer" /> Layers</label>
-          <label><Toggle v-model="animate" label="Animate" /> Animate</label>
-          <label><Toggle v-model="autoRotate" label="Auto rotate" /> Rotate</label>
+      <div v-if="preview" class="show-info">
+        <div class="show-name ellipsis">{{ preview.name }}</div>
+        <div class="show-meta">
+          <span class="pill">{{ preview.variant === "slim" ? "Slim arms" : "Classic arms" }}</span>
+          <span v-if="selectedId === preview.id" class="pill accent">Wearing</span>
+        </div>
+        <div class="show-actions">
+          <button class="btn primary grow" :disabled="!!wearing || selectedId === preview.id" @click="wear(preview)">
+            <span v-if="wearing === preview.id" class="spinner" />
+            {{ selectedId === preview.id ? "✓ Wearing" : "Wear this skin" }}
+          </button>
+          <button v-if="!preview.original" class="btn" :title="`Switch to ${preview.variant === 'slim' ? 'classic' : 'slim'} arms`" @click="switchVariant(preview)">Arms</button>
         </div>
       </div>
-      <div class="cards scroll">
-        <div v-for="card in cards" :key="card.id" class="card" :class="{ previewing: preview?.id === card.id }" @click="previewId = card.id">
+    </section>
+
+    <section class="library">
+      <header class="lib-head">
+        <div class="lib-title">
+          <h2>Skins</h2>
+          <small>{{ cards.length }} in your library</small>
+        </div>
+        <input v-model="filter" class="field pill search" placeholder="Search skins.." />
+        <button class="btn primary" @click="importSkin">+ Import skin</button>
+      </header>
+      <div class="grid scroll">
+        <div
+          v-for="card in shown"
+          :key="card.id"
+          class="card"
+          :class="{ previewing: preview?.id === card.id, worn: selectedId === card.id }"
+          @click="previewId = card.id"
+        >
           <div class="thumb">
             <img v-if="card.thumb" :src="card.thumb" class="pixel" alt="" />
+            <span v-else class="spinner" />
           </div>
-          <div class="card-foot">
-            <div class="card-name ellipsis">{{ card.name }}</div>
-            <div v-if="selectedId === card.id" class="card-state">(selected)</div>
-            <button v-else class="card-state wear" :disabled="!!wearing" @click.stop="wear(card)">
+          <div class="card-info">
+            <div class="card-name ellipsis" :title="card.name">{{ card.name }}</div>
+            <div class="card-meta">
+              <span>{{ card.variant === "slim" ? "Slim" : "Classic" }}</span>
+              <span v-if="selectedId === card.id" class="worn-tag">Wearing</span>
+            </div>
+          </div>
+          <div class="card-actions" @click.stop>
+            <button v-if="selectedId !== card.id" class="mini wear" :disabled="!!wearing" @click="wear(card)">
               <span v-if="wearing === card.id" class="spinner" />
-              <template v-else>+ Wear</template>
+              <template v-else>Wear</template>
             </button>
+            <span class="grow" />
+            <button v-if="!card.original" class="mini" :title="`Switch to ${card.variant === 'slim' ? 'classic' : 'slim'} arms`" @click="switchVariant(card)">Arms</button>
+            <button v-if="!card.original" class="mini danger" title="Remove from library" @click="removeSkin(card)">✕</button>
           </div>
-          <div v-if="!card.original" class="card-tools" @click.stop>
-            <button :title="`Switch to ${card.variant === 'slim' ? 'classic' : 'slim'} arms`" @click="switchVariant(card)">{{ card.variant === "slim" ? "Slim" : "Classic" }}</button>
-            <button class="x" title="Remove from library" @click="removeSkin(card)">✕</button>
-          </div>
-          <div v-else class="card-tools"><span class="tag">{{ card.variant === "slim" ? "Slim" : "Classic" }}</span></div>
         </div>
-        <button class="add" title="Import PNG skin" @click="importSkin">+</button>
+        <button v-if="!filter" class="card add" @click="importSkin">
+          <span class="plus">+</span>
+          <span class="add-label">Import a skin</span>
+          <small>PNG file</small>
+        </button>
+        <div v-if="filter && !shown.length" class="empty">No skins match that search.</div>
       </div>
       <p class="hint">
-        Drag to rotate, scroll to zoom.
+        Drag the model to rotate, scroll to zoom.
         <template v-if="account?.kind === 'microsoft'">Wearing a skin uploads it to your Minecraft profile.</template>
-        <template v-else-if="account">Offline profiles keep skins local to Zip.</template>
+        <template v-else-if="account">Offline profiles keep skins inside Zip.</template>
       </p>
     </section>
   </div>
@@ -262,33 +313,111 @@ onUnmounted(() => {
 
 <style scoped>
 .skins {
+  --card: 128px;
   height: 100%;
-  display: flex;
-  gap: 6px;
-  padding: 12px 12px 14px 12px;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 12px;
+  padding: 12px;
 }
 
-.preview {
-  width: 198px;
-  flex: none;
+.skins.preview-right {
+  grid-template-columns: 1fr 300px;
+}
+
+.skins.preview-right .showcase {
+  order: 2;
+}
+
+.skins.size-small {
+  --card: 104px;
+}
+
+.skins.size-large {
+  --card: 160px;
+}
+
+.showcase {
   display: flex;
   flex-direction: column;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 13px;
+  min-height: 0;
   overflow: hidden;
-  box-shadow: inset 0 1px 0 var(--hairline), var(--shadow-sm);
+  border-radius: 14px;
+}
+
+.show-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 12px 0 16px;
+}
+
+.who {
+  font-size: calc(13px * var(--text-scale, 1));
+  color: var(--text-dim);
+}
+
+.tools {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.tool {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-chip);
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  color: var(--text-faint);
+  transition: color var(--t-fast), background var(--t-fast), border-color var(--t-fast);
+}
+
+.tool:hover {
+  color: var(--text);
+}
+
+.tool.on {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.tool svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .stage {
   flex: 1;
   min-height: 0;
-  cursor: grab;
   position: relative;
+  cursor: grab;
+  background: radial-gradient(60% 50% at 50% 42%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%);
 }
 
 .stage:active {
   cursor: grabbing;
+}
+
+.floor {
+  position: absolute;
+  left: 50%;
+  bottom: 9%;
+  width: 46%;
+  height: 7%;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent);
+  pointer-events: none;
 }
 
 .stage canvas {
@@ -296,82 +425,106 @@ onUnmounted(() => {
   inset: 0;
 }
 
-.player-name {
-  height: 50px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  background: var(--panel-3);
-  font-size: 20px;
-  font-style: italic;
-  margin: 0 0 0 2px;
-  border-radius: 0 0 12px 12px;
-  padding: 0 8px;
-}
-
-.side {
-  flex: 1;
-  min-width: 0;
+.show-info {
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--panel-2);
   display: flex;
   flex-direction: column;
-  padding: 1px 0 0 4px;
+  gap: 8px;
 }
 
-.top {
+.show-name {
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+.show-meta {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.using {
-  font-size: 16px;
-  font-style: italic;
-}
-
-.controls {
-  display: flex;
-  gap: 12px;
-  flex: none;
-}
-
-.controls label {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  font-size: 11px;
+}
+
+.pill {
+  font-size: calc(10px * var(--text-scale, 1));
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--panel-3);
   color: var(--text-dim);
 }
 
-.cards {
-  margin-top: 14px;
+.pill.accent {
+  background: var(--accent-bg-hover);
+  color: var(--accent);
+}
+
+.show-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 11px;
-  align-content: flex-start;
+  gap: 6px;
+}
+
+.library {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.lib-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 2px 12px;
+}
+
+.lib-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-title h2 {
+  margin: 0;
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+.lib-title small {
+  font-size: calc(11px * var(--text-scale, 1));
+  color: var(--text-faint);
+}
+
+.search {
+  width: 190px;
+  flex: none;
+}
+
+.grid {
   flex: 1;
   min-height: 0;
-  padding: 2px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card), 1fr));
+  grid-auto-rows: max-content;
+  gap: 10px;
+  padding: 3px 3px 6px;
+  align-content: start;
 }
 
 .card {
-  width: 120px;
-  height: 185px;
-  border-radius: var(--r-row);
-  background: var(--panel);
-  border: 1px solid var(--border-soft);
+  position: relative;
   display: flex;
   flex-direction: column;
-  position: relative;
+  border-radius: var(--r-panel);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: inset 0 1px 0 var(--hairline), var(--shadow-sm);
   cursor: pointer;
-  box-shadow: inset 0 1px 0 var(--hairline);
-  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast), border-color var(--t-fast);
+  overflow: hidden;
+  transition: transform var(--t-med) var(--ease), filter var(--t-med) var(--ease), border-color var(--t-fast), box-shadow var(--t-fast);
 }
 
 .card:hover {
   transform: translateY(-2px);
+  filter: brightness(1.1);
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-pop), inset 0 1px 0 var(--hairline);
 }
 
 .card.previewing {
@@ -380,109 +533,122 @@ onUnmounted(() => {
 }
 
 .thumb {
-  flex: 1;
+  aspect-ratio: 4 / 5;
   display: grid;
   place-items: center;
-  padding-top: 14px;
+  background:
+    radial-gradient(70% 55% at 50% 40%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 70%),
+    var(--panel-3);
 }
 
 .thumb img {
-  height: 112px;
-  width: 56px;
+  height: 78%;
+  aspect-ratio: 1 / 2;
 }
 
-.card-foot {
-  height: 50px;
-  background: var(--panel-3);
-  border-radius: 0 0 12px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
+.card-info {
+  padding: 8px 10px 9px;
 }
 
 .card-name {
-  font-size: 16px;
-  font-style: italic;
-  max-width: 110px;
-  padding: 0 3px;
+  font-size: calc(13px * var(--text-scale, 1));
+  font-weight: 600;
 }
 
-.card-state {
-  font-size: 12px;
-  font-style: italic;
+.card-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-faint);
 }
 
-.card-state.wear {
-  font-size: 16px;
-  transition: color var(--t-fast);
-  display: grid;
-  place-items: center;
-  min-height: 19px;
-}
-
-.card-state.wear:hover {
+.worn-tag {
   color: var(--accent);
+  font-weight: 600;
 }
 
-.card-tools {
+.card-actions {
   position: absolute;
   top: 6px;
   left: 6px;
   right: 6px;
   display: flex;
-  justify-content: space-between;
+  gap: 4px;
   opacity: 0;
-  transition: opacity var(--t-fast);
+  translate: 0 -3px;
+  transition: opacity var(--t-fast), translate var(--t-fast) var(--ease);
 }
 
-.card:hover .card-tools {
+.card:hover .card-actions {
   opacity: 1;
+  translate: 0 0;
 }
 
-.card-tools button,
-.tag {
-  font-size: 10px;
-  padding: 2px 6px;
+.mini {
+  height: 22px;
+  min-width: 22px;
+  padding: 0 7px;
+  display: grid;
+  place-items: center;
   border-radius: var(--r-small);
-  background: var(--panel-3);
+  font-size: calc(10px * var(--text-scale, 1));
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+  border: 1px solid var(--border-soft);
   color: var(--text-dim);
+  backdrop-filter: blur(4px);
+  transition: color var(--t-fast), background var(--t-fast);
 }
 
-.card-tools button:hover {
+.mini:hover {
   color: var(--text);
 }
 
-.card-tools .x:hover {
+.mini.wear {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.mini.danger:hover {
   background: var(--danger-bg);
   color: var(--danger-text);
 }
 
-.add {
-  width: 47px;
-  height: 185px;
-  border-radius: var(--r-small);
+.card.add {
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: calc(var(--card) * 1.25 + 46px);
+  border: 1.5px dashed var(--accent-border);
   background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  box-shadow: none;
   color: var(--accent);
-  font-size: 36px;
-  transition: background var(--t-fast), transform var(--t-fast) var(--ease), box-shadow var(--t-fast);
 }
 
-.add:hover {
-  background: var(--accent-bg-hover);
-  box-shadow: 0 0 16px var(--accent-glow);
+.card.add:hover {
+  border-color: var(--accent);
 }
 
-.add:active {
-  transform: scale(0.97);
+.plus {
+  font-size: calc(30px * var(--text-scale, 1));
+  line-height: 1;
+}
+
+.add-label {
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.card.add small {
+  font-size: calc(10px * var(--text-scale, 1));
+  color: var(--text-faint);
 }
 
 .hint {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
-  margin: 8px 0 0;
+  margin: 8px 2px 0;
 }
 </style>

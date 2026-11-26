@@ -164,7 +164,7 @@ onUnmounted(close);
   border-radius: var(--r-small);
   border: 1px solid var(--border);
   background: var(--field);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   text-align: left;
   transition: border-color var(--t-fast), background var(--t-fast);
 }
@@ -214,7 +214,7 @@ onUnmounted(close);
   border-radius: var(--r-row);
   box-shadow: var(--shadow-pop), inset 0 1px 0 var(--hairline);
   padding: 4px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   transform-origin: top;
 }
 
@@ -262,7 +262,7 @@ onUnmounted(close);
 .dd-menu .hint {
   margin-left: auto;
   color: var(--text-faint);
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   flex: none;
 }
 

@@ -36,7 +36,7 @@ function accept() {
 <style scoped>
 .gate {
   padding: 0 22px 20px;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 

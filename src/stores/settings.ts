@@ -1,8 +1,9 @@
 import { defineStore } from "pinia";
-import { ref, toRaw, watch } from "vue";
+import { computed, ref, toRaw, watch } from "vue";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { api, type Settings } from "../api";
 import { setLanguage } from "../i18n";
+import { applyUi, readUi, type UiLayout } from "../ui";
 
 function contrastText(hex: string): string {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
@@ -18,9 +19,22 @@ function contrastText(hex: string): string {
 
 export const useSettings = defineStore("settings", () => {
   const s = ref<Settings | null>(null);
+  const ui = computed(() => readUi(s.value?.appearance.ui));
+  const backgroundImage = ref("");
   let timer = 0;
   let suppress = false;
   let lastScale = 0;
+
+  function editUi(change: (draft: UiLayout) => void) {
+    if (!s.value) return;
+    const draft = structuredClone(toRaw(ui.value));
+    change(draft);
+    s.value.appearance.ui = draft as unknown as Record<string, unknown>;
+  }
+
+  async function loadBackground() {
+    backgroundImage.value = (await api.uiBackground().catch(() => null)) ?? "";
+  }
 
   function apply() {
     if (!s.value) return;
@@ -32,6 +46,7 @@ export const useSettings = defineStore("settings", () => {
     root.style.setProperty("--accent", a.accent);
     root.style.setProperty("--on-accent", contrastText(a.accent));
     root.style.setProperty("--bg-dim", String(a.background_dim));
+    applyUi(root, ui.value);
     setLanguage(s.value.general.language);
     if (a.scale !== lastScale) {
       lastScale = a.scale;
@@ -58,6 +73,7 @@ export const useSettings = defineStore("settings", () => {
     s.value = await api.settings();
     suppress = false;
     apply();
+    loadBackground();
   }
 
   function replace(next: Settings) {
@@ -78,5 +94,5 @@ export const useSettings = defineStore("settings", () => {
     { deep: true },
   );
 
-  return { s, load, flush, replace, apply };
+  return { s, ui, backgroundImage, editUi, loadBackground, load, flush, replace, apply };
 });

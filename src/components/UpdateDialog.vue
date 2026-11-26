@@ -84,7 +84,7 @@ function skip() {
 }
 
 h2 {
-  font-size: 17px;
+  font-size: calc(17px * var(--text-scale, 1));
   font-weight: 600;
   margin: 14px 0 2px;
 }
@@ -95,7 +95,7 @@ h2 {
 }
 
 .versions {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-faint);
   margin: 10px 0 0;
 }
@@ -105,7 +105,7 @@ h2 {
   text-align: left;
   white-space: pre-wrap;
   font-family: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   background: var(--panel);
   border-radius: var(--r-row);
@@ -126,18 +126,18 @@ h2 {
 .btn.big {
   height: 36px;
   padding: 0 16px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
 }
 
 .hint,
 .fine {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
   margin: 12px 0 0;
 }
 
 .err {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--danger-text);
   margin: 10px 0 0;
 }

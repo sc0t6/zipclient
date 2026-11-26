@@ -513,6 +513,81 @@ async fn project_meta(source: &str, id: &str) -> (String, String) {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GalleryImage {
+    pub url: String,
+    pub title: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectDetails {
+    pub title: String,
+    pub summary: String,
+    pub body: String,
+    pub html: bool,
+    pub icon_url: String,
+    pub downloads: u64,
+    pub categories: Vec<String>,
+    pub gallery: Vec<GalleryImage>,
+    pub updated: String,
+}
+
+fn strings(value: &serde_json::Value, key: Option<&str>) -> Vec<String> {
+    value.as_array().map(|a| a.iter().filter_map(|x| key.map_or(x, |k| &x[k]).as_str().map(String::from)).collect()).unwrap_or_default()
+}
+
+pub async fn project(source: &str, id: &str) -> Result<ProjectDetails> {
+    if source == "horizon" {
+        let m = crate::horizon::mod_index().await?.into_iter().find(|m| m.id == id).ok_or_else(|| Error::msg("Unknown Horizon mod"))?;
+        return Ok(ProjectDetails {
+            summary: m.summary.lines().next().unwrap_or("").to_string(),
+            updated: m.versions.iter().map(|v| v.published.clone()).max().unwrap_or_default(),
+            title: m.name,
+            body: m.summary,
+            html: false,
+            icon_url: m.icon,
+            downloads: m.downloads,
+            categories: m.categories,
+            gallery: Vec::new(),
+        });
+    }
+    if source == "curseforge" {
+        let (info_path, description_path) = (format!("/mods/{id}"), format!("/mods/{id}/description"));
+        let (info, description) = futures_util::join!(curseforge_get(&info_path, &[]), curseforge_get(&description_path, &[]));
+        let d = &info?["data"];
+        return Ok(ProjectDetails {
+            title: d["name"].as_str().unwrap_or("").into(),
+            summary: d["summary"].as_str().unwrap_or("").into(),
+            body: description.ok().and_then(|v| v["data"].as_str().map(String::from)).unwrap_or_default(),
+            html: true,
+            icon_url: d["logo"]["thumbnailUrl"].as_str().unwrap_or("").into(),
+            downloads: d["downloadCount"].as_f64().unwrap_or(0.0) as u64,
+            categories: strings(&d["categories"], Some("name")),
+            gallery: d["screenshots"]
+                .as_array()
+                .map(|a| a.iter().filter_map(|s| Some(GalleryImage { url: s["url"].as_str()?.into(), title: s["title"].as_str().unwrap_or("").into() })).collect())
+                .unwrap_or_default(),
+            updated: d["dateModified"].as_str().unwrap_or("").into(),
+        });
+    }
+    let p: serde_json::Value = net::get_json(&format!("{MODRINTH}/project/{id}")).await?;
+    let mut gallery: Vec<&serde_json::Value> = p["gallery"].as_array().map(|a| a.iter().collect()).unwrap_or_default();
+    gallery.sort_by_key(|g| (g["featured"].as_bool() != Some(true), g["ordering"].as_i64().unwrap_or(0)));
+    Ok(ProjectDetails {
+        title: p["title"].as_str().unwrap_or("").into(),
+        summary: p["description"].as_str().unwrap_or("").into(),
+        body: p["body"].as_str().unwrap_or("").into(),
+        html: false,
+        icon_url: p["icon_url"].as_str().unwrap_or("").into(),
+        downloads: p["downloads"].as_u64().unwrap_or(0),
+        categories: strings(&p["categories"], None),
+        gallery: gallery.into_iter().filter_map(|g| Some(GalleryImage { url: g["url"].as_str()?.into(), title: g["title"].as_str().unwrap_or("").into() })).collect(),
+        updated: p["updated"].as_str().unwrap_or("").into(),
+    })
+}
+
 pub async fn project_icon(source: &str, id: &str) -> Option<String> {
     Some(project_meta(source, id).await.1).filter(|u| !u.is_empty())
 }
@@ -621,9 +696,10 @@ pub async fn install(
         let safe_name = Path::new(&chosen.file_name).file_name().map(|f| f.to_string_lossy().to_string()).ok_or_else(|| Error::msg("Invalid file name"))?;
         let relative = format!("{folder}/{safe_name}");
         let target = storage::safe_join(&game_dir, &relative)?;
+        let existed = target.exists();
         reporter.phase(&format!("Downloading {safe_name}"));
         net::download_all(
-            vec![DownloadItem::new(chosen.url.clone(), target, (!chosen.sha1.is_empty()).then(|| chosen.sha1.clone()), (chosen.size > 0).then_some(chosen.size))],
+            vec![DownloadItem::new(chosen.url.clone(), target.clone(), (!chosen.sha1.is_empty()).then(|| chosen.sha1.clone()), (chosen.size > 0).then_some(chosen.size))],
             reporter.progress(),
             true,
         )
@@ -635,6 +711,13 @@ pub async fn install(
             .filter(|(path, e)| e.project_id == project && **path != relative)
             .map(|(p, _)| p.clone())
             .collect();
+        if file_kind == "mod" && !existed && matches!(instance.loader.as_str(), "fabric" | "quilt") && safe_name.ends_with(".jar") {
+            let replaced: Vec<PathBuf> = previous.iter().map(|p| game_dir.join(p)).collect();
+            if let Some(problem) = crate::modcheck::conflict(&game_dir.join(folder), &target, &replaced) {
+                let _ = std::fs::remove_file(&target);
+                return Err(Error::msg(problem));
+            }
+        }
         for old in previous {
             let _ = std::fs::remove_file(game_dir.join(&old));
             let _ = std::fs::remove_file(game_dir.join(format!("{old}.disabled")));
@@ -713,7 +796,7 @@ pub fn image_mime(bytes: &[u8]) -> Option<&'static str> {
     }
 }
 
-fn data_url(bytes: &[u8]) -> Option<String> {
+pub fn data_url(bytes: &[u8]) -> Option<String> {
     use base64::Engine;
     let mime = image_mime(bytes)?;
     Some(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes)))
@@ -1094,14 +1177,24 @@ pub async fn check_updates(instance_id: &str, kind: &str) -> Result<Vec<UpdateIn
     let mut out = horizon_updates(&instance, &files, &index).await;
     for (hash, version) in latest {
         let Some((path, entry)) = by_hash.get(&hash) else { continue };
-        let new_id = version["id"].as_str().unwrap_or("");
-        if !new_id.is_empty() && new_id != entry.version_id {
+        let mut chosen = (version["id"].as_str().unwrap_or("").to_string(), version["version_number"].as_str().unwrap_or("").to_string());
+        if version["version_type"].as_str().is_some_and(|t| t != "release") {
+            if let Ok(list) = versions("modrinth", &entry.project_id, kind, &instance.minecraft, &instance.loader).await {
+                if list.iter().find(|v| v.id == entry.version_id).is_none_or(|v| v.channel == "release") {
+                    match list.iter().find(|v| v.channel == "release") {
+                        Some(v) => chosen = (v.id.clone(), v.version_number.clone()),
+                        None => continue,
+                    }
+                }
+            }
+        }
+        if !chosen.0.is_empty() && chosen.0 != entry.version_id {
             out.push(UpdateInfo {
                 path: path.clone(),
                 project_id: entry.project_id.clone(),
                 current: entry.version_number.clone(),
-                latest: version["version_number"].as_str().unwrap_or("").into(),
-                version_id: new_id.into(),
+                latest: chosen.1,
+                version_id: chosen.0,
             });
         }
     }

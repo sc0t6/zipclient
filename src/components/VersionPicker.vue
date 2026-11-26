@@ -132,7 +132,7 @@ onMounted(() => {
 }
 
 .kind {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   padding: 3px 9px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -157,7 +157,7 @@ onMounted(() => {
   flex: 1;
   height: 26px;
   border-radius: var(--r-chip);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   transition: background var(--t-med) var(--ease), color var(--t-fast);
 }
@@ -177,14 +177,14 @@ onMounted(() => {
 }
 
 .note {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
   margin: 2px 0 0;
   line-height: 1.4;
 }
 
 .err {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--warn);
 }
 </style>

@@ -181,6 +181,7 @@ pub struct AppearanceSettings {
     pub background_dim: f64,
     pub follow_system_motion: bool,
     pub nav: String,
+    pub ui: serde_json::Value,
 }
 
 impl Default for AppearanceSettings {
@@ -194,6 +195,7 @@ impl Default for AppearanceSettings {
             background_dim: 0.78,
             follow_system_motion: true,
             nav: "top".into(),
+            ui: serde_json::json!({}),
         }
     }
 }
@@ -315,6 +317,9 @@ impl Settings {
         s.appearance.background_dim = s.appearance.background_dim.clamp(0.0, 0.95);
         if !matches!(s.appearance.nav.as_str(), "top" | "side" | "icons") {
             s.appearance.nav = "top".into();
+        }
+        if !s.appearance.ui.is_object() || s.appearance.ui.to_string().len() > 32 * 1024 {
+            s.appearance.ui = serde_json::json!({});
         }
         if !LANGUAGES.contains(&s.general.language.as_str()) {
             s.general.language = "en".into();

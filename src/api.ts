@@ -26,6 +26,7 @@ export interface Settings {
     background_dim: number;
     follow_system_motion: boolean;
     nav: "top" | "side" | "icons";
+    ui: Record<string, unknown>;
   };
   minecraft: {
     java_mode: string;
@@ -198,6 +199,18 @@ export interface ContentVersion {
   channel: string;
 }
 
+export interface ProjectDetails {
+  title: string;
+  summary: string;
+  body: string;
+  html: boolean;
+  iconUrl: string;
+  downloads: number;
+  categories: string[];
+  gallery: { url: string; title: string }[];
+  updated: string;
+}
+
 export interface InstalledFile {
   path: string;
   fileName: string;
@@ -368,6 +381,10 @@ export const api = {
   categories: (source: string, kind: ContentKind) => invoke<{ id: string; name: string }[]>("content_categories", { source, kind }),
   contentVersions: (source: string, projectId: string, kind: ContentKind, minecraft: string, loader: string) =>
     invoke<ContentVersion[]>("content_versions", { source, projectId, kind, minecraft, loader }),
+  contentProject: (source: string, projectId: string) => invoke<ProjectDetails>("content_project", { source, projectId }),
+  uiBackground: () => invoke<string | null>("ui_background_get"),
+  setUiBackground: (path: string) => invoke<string>("ui_background_set", { path }),
+  clearUiBackground: () => invoke<void>("ui_background_clear"),
   installContent: (instanceId: string, source: string, projectId: string, versionId: string | null, kind: ContentKind) =>
     invoke<{ installed: string[]; skipped: string[] }>("content_install", { instanceId, source, projectId, versionId, kind }),
   listContent: (instanceId: string, kind: ContentKind, identify: boolean) => invoke<InstalledFile[]>("content_list", { instanceId, kind, identify }),

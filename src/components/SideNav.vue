@@ -53,7 +53,7 @@ const app = useApp();
   border-radius: var(--r-row);
   border: 1px solid transparent;
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   font-weight: 600;
   transition: background var(--t-fast) var(--ease), color var(--t-fast), border-color var(--t-fast), transform var(--t-fast) var(--ease);
 }

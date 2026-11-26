@@ -73,7 +73,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 }
 
 .dialog-title {
-  font-size: 18px;
+  font-size: calc(18px * var(--text-scale, 1));
   font-weight: 600;
   letter-spacing: -0.01em;
 }

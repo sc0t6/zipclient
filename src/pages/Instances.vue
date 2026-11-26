@@ -9,8 +9,12 @@ import { api, errorText, formatPlaytime, loaderNames, type Instance } from "../a
 import { importFile, importing } from "../importer";
 import { useApp } from "../stores/app";
 import { useNotify } from "../stores/notify";
+import { useSettings } from "../stores/settings";
 
 defineOptions({ name: "InstancesPage" });
+
+const settings = useSettings();
+const layout = computed(() => settings.ui.instances);
 
 const InstanceSettings = defineAsyncComponent(() => import("../components/InstanceSettings.vue"));
 const ContentManager = defineAsyncComponent(() => import("../components/ContentManager.vue"));
@@ -202,7 +206,7 @@ function lastPlayed(i: Instance) {
 </script>
 
 <template>
-  <div class="instances">
+  <div class="instances" :class="[`side-${layout.side}`, `width-${layout.width}`]">
     <aside class="side panel">
       <input v-model="search" class="field pill" placeholder="Search instances.." />
       <div class="row tools">
@@ -362,11 +366,28 @@ function lastPlayed(i: Instance) {
 
 <style scoped>
 .instances {
+  --list: 236px;
   height: 100%;
   display: grid;
-  grid-template-columns: 236px 1fr;
+  grid-template-columns: var(--list) 1fr;
   gap: 11px;
   padding: 12px 11px 12px 12px;
+}
+
+.instances.width-narrow {
+  --list: 196px;
+}
+
+.instances.width-wide {
+  --list: 300px;
+}
+
+.instances.side-right {
+  grid-template-columns: 1fr var(--list);
+}
+
+.instances.side-right > .side {
+  order: 2;
 }
 
 .side {
@@ -420,7 +441,7 @@ function lastPlayed(i: Instance) {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
   padding: 6px 4px 2px;
   font-style: italic;
@@ -471,12 +492,12 @@ function lastPlayed(i: Instance) {
 }
 
 .item-name {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-weight: 600;
 }
 
 .item-sub {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   color: var(--text-dim);
   font-style: italic;
 }
@@ -528,7 +549,7 @@ function lastPlayed(i: Instance) {
   text-align: left;
   padding: 7px 9px;
   border-radius: var(--r-small);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 .pop-menu button:hover:not(:disabled) {
@@ -571,17 +592,17 @@ function lastPlayed(i: Instance) {
 
 h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 600;
 }
 
 .rename {
   height: 30px;
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale, 1));
 }
 
 .meta {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   font-style: italic;
   margin-top: 2px;
@@ -590,7 +611,7 @@ h2 {
 .play {
   height: 36px;
   min-width: 96px;
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: 0.01em;
   border-radius: var(--r-row);
@@ -611,7 +632,7 @@ h2 {
   align-items: center;
   gap: 8px;
   margin: 0 14px 6px;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-dim);
   position: relative;
   padding-bottom: 5px;
@@ -647,7 +668,7 @@ h2 {
 
 .tab {
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   position: relative;
   transition: color var(--t-fast);
@@ -715,22 +736,22 @@ h2 {
 }
 
 .stat .label {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-faint);
 }
 
 .stat strong {
-  font-size: 18px;
+  font-size: calc(18px * var(--text-scale, 1));
 }
 
 .stat strong.small {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
 }
 
 h3 {
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 600;
   margin: 16px 0 8px;
 }
@@ -745,7 +766,7 @@ h3 {
   display: grid;
   grid-template-columns: 1fr 80px 140px;
   gap: 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   padding: 6px 10px;
   border-radius: var(--r-small);
   background: var(--panel-2);

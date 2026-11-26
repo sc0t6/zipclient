@@ -7,6 +7,7 @@ mod game;
 mod horizon;
 mod instances;
 mod minecraft;
+mod modcheck;
 mod modpack;
 mod nbt;
 mod net;
@@ -342,6 +343,42 @@ async fn content_versions(source: String, project_id: String, kind: String, mine
 }
 
 #[tauri::command]
+async fn content_project(source: String, project_id: String) -> Result<content::ProjectDetails> {
+    content::project(&source, &project_id).await
+}
+
+fn ui_background_file() -> std::path::PathBuf {
+    storage::root().join("ui-background")
+}
+
+#[tauri::command]
+async fn ui_background_set(path: String) -> Result<String> {
+    blocking(move || {
+        if std::fs::metadata(&path)?.len() > 15 * 1024 * 1024 {
+            return Err(Error::msg("Pick an image smaller than 15 MB."));
+        }
+        let bytes = std::fs::read(&path)?;
+        let url = content::data_url(&bytes).ok_or_else(|| Error::msg("Pick a PNG, JPEG, GIF or WebP image."))?;
+        std::fs::write(ui_background_file(), &bytes)?;
+        Ok(url)
+    })
+    .await
+}
+
+#[tauri::command]
+async fn ui_background_get() -> Option<String> {
+    tokio::task::spawn_blocking(|| std::fs::read(ui_background_file()).ok().and_then(|b| content::data_url(&b))).await.ok().flatten()
+}
+
+#[tauri::command]
+async fn ui_background_clear() -> Result<()> {
+    match std::fs::remove_file(ui_background_file()) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.into()),
+        _ => Ok(()),
+    }
+}
+
+#[tauri::command]
 async fn content_install(
     app: AppHandle,
     instance_id: String,
@@ -624,6 +661,10 @@ pub fn run() {
             content_search,
             content_categories,
             content_versions,
+            content_project,
+            ui_background_set,
+            ui_background_get,
+            ui_background_clear,
             content_install,
             content_list,
             content_toggle,

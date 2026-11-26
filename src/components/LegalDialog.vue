@@ -33,7 +33,7 @@ const document = computed(() => legal.documents[props.doc]);
   padding: 0 24px 22px;
   max-height: 64vh;
   line-height: 1.55;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--text-scale, 1));
   color: var(--text-dim);
   user-select: text;
   -webkit-user-select: text;
@@ -45,7 +45,7 @@ const document = computed(() => legal.documents[props.doc]);
 
 h3 {
   color: var(--text);
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 600;
   margin: 16px 0 4px;
 }
@@ -55,13 +55,13 @@ p {
 }
 
 .meta {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
 }
 
 .link {
   color: var(--link);
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   text-decoration: underline;
 }
 </style>
