@@ -5,7 +5,7 @@ import Dropdown from "../components/Dropdown.vue";
 import InstanceIcon from "../components/InstanceIcon.vue";
 import IconPicker from "../components/IconPicker.vue";
 import Modal from "../components/Modal.vue";
-import { api, errorText, formatPlaytime, loaderNames, type Instance } from "../api";
+import { api, errorText, formatPlaytime, loaderNames, type Instance, type PlaySession } from "../api";
 import { importFile, importing } from "../importer";
 import { useApp } from "../stores/app";
 import { useNotify } from "../stores/notify";
@@ -19,6 +19,10 @@ const layout = computed(() => settings.ui.instances);
 const InstanceSettings = defineAsyncComponent(() => import("../components/InstanceSettings.vue"));
 const ContentManager = defineAsyncComponent(() => import("../components/ContentManager.vue"));
 const LogView = defineAsyncComponent(() => import("../components/LogView.vue"));
+const LaunchLog = defineAsyncComponent(() => import("../components/LaunchLog.vue"));
+const InstanceScreenshots = defineAsyncComponent(() => import("../components/InstanceScreenshots.vue"));
+const InstanceWorlds = defineAsyncComponent(() => import("../components/InstanceWorlds.vue"));
+const InstanceDatapacks = defineAsyncComponent(() => import("../components/InstanceDatapacks.vue"));
 
 const app = useApp();
 const notify = useNotify();
@@ -34,6 +38,8 @@ const iconOpen = ref(false);
 const renaming = ref(false);
 const renameValue = ref("");
 const working = ref("");
+const logSession = ref<PlaySession | null>(null);
+const packWorld = ref("");
 
 const sortOptions = [
   { value: "recent", label: "Recently played" },
@@ -73,7 +79,14 @@ const tabs = computed(() => [
   { id: "overview", label: "Overview" },
   { id: "mods", label: "Mods" },
   { id: "resourcepacks", label: "Resource packs" },
-  ...(selected.value?.loader === "horizon" ? [] : [{ id: "shaders", label: "Shaders" }]),
+  ...(selected.value?.loader === "horizon"
+    ? []
+    : [
+        { id: "shaders", label: "Shaders" },
+        { id: "worlds", label: "Worlds" },
+        { id: "datapacks", label: "Datapacks" },
+        { id: "screenshots", label: "Screenshots" },
+      ]),
   { id: "settings", label: "Settings" },
   { id: "logs", label: "Logs" },
 ]);
@@ -97,7 +110,17 @@ watch(
 function select(id: string) {
   app.selectedInstance = id;
   renaming.value = false;
+  packWorld.value = "";
 }
+
+function openDatapacks(folder: string) {
+  packWorld.value = folder;
+  app.instanceTab = "datapacks";
+}
+
+watch(tabs, (list) => {
+  if (!list.some((t) => t.id === app.instanceTab)) app.instanceTab = "overview";
+});
 
 function play() {
   const i = selected.value;
@@ -312,11 +335,12 @@ function lastPlayed(i: Instance) {
           </div>
           <h3>Launch history</h3>
           <div class="history">
-            <div v-for="h in selected.history" :key="h.started" class="hist">
+            <button v-for="h in selected.history" :key="h.started" class="hist" title="View the log for this launch" @click="logSession = h">
               <span>{{ new Date(h.started * 1000).toLocaleString() }}</span>
               <span class="muted">{{ formatPlaytime(h.duration) }}</span>
               <span :class="h.exit_code === 0 ? 'ok' : h.exit_code === null ? 'muted' : 'bad'">{{ h.exit_code === 0 ? "Exited normally" : h.exit_code === null ? "Stopped from Zip" : `Exit code ${h.exit_code}` }}</span>
-            </div>
+              <span class="view">View log ›</span>
+            </button>
             <div v-if="!selected.history.length" class="empty">Not played yet.</div>
           </div>
         </div>
@@ -327,6 +351,9 @@ function lastPlayed(i: Instance) {
           :kind="app.instanceTab === 'mods' ? 'mod' : app.instanceTab === 'shaders' ? 'shader' : 'resourcepack'"
         />
         <InstanceSettings v-else-if="app.instanceTab === 'settings'" :key="selected.id" :instance="selected" />
+        <InstanceWorlds v-else-if="app.instanceTab === 'worlds'" :key="selected.id + 'w'" :instance="selected" @datapacks="openDatapacks" />
+        <InstanceDatapacks v-else-if="app.instanceTab === 'datapacks'" :key="selected.id + 'd'" v-model:world="packWorld" :instance="selected" />
+        <InstanceScreenshots v-else-if="app.instanceTab === 'screenshots'" :key="selected.id + 's'" :instance="selected" />
         <LogView v-else-if="app.instanceTab === 'logs'" :key="selected.id" :instance="selected" />
       </div>
     </section>
@@ -350,6 +377,7 @@ function lastPlayed(i: Instance) {
         </div>
       </div>
     </Modal>
+    <LaunchLog v-if="logSession && selected" :instance="selected" :session="logSession" @close="logSession = null" />
     <Modal v-if="deleteOpen && selected" title="Delete instance?" :width="420" @close="deleteOpen = false">
       <div class="confirm-body">
         <p>
@@ -662,12 +690,16 @@ h2 {
   display: flex;
   gap: 2px;
   padding: 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
   border-bottom: 1px solid var(--border-soft);
   flex: none;
 }
 
 .tab {
   padding: 8px 10px;
+  white-space: nowrap;
+  flex: none;
   font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-dim);
   position: relative;
@@ -764,7 +796,11 @@ h3 {
 
 .hist {
   display: grid;
-  grid-template-columns: 1fr 80px 140px;
+  grid-template-columns: 1fr 80px 140px 70px;
+  align-items: center;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
   gap: 8px;
   font-size: calc(12px * var(--text-scale, 1));
   padding: 6px 10px;
@@ -776,7 +812,22 @@ h3 {
 
 .hist:hover {
   background: var(--chip-hover);
-  border-color: var(--border-soft);
+  border-color: var(--accent-border);
+}
+
+.view {
+  justify-self: end;
+  color: var(--accent);
+  font-size: calc(11px * var(--text-scale, 1));
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--t-fast), transform var(--t-fast) var(--ease);
+}
+
+.hist:hover .view,
+.hist:focus-visible .view {
+  opacity: 1;
+  transform: none;
 }
 
 .ok {

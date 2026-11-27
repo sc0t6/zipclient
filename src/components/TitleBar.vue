@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { icons } from "../icons";
+import NotificationBell from "./NotificationBell.vue";
 import { navTabs as tabs } from "../nav";
 import { useApp } from "../stores/app";
 import { useSettings } from "../stores/settings";
@@ -81,6 +82,7 @@ onUnmounted(() => unlisten?.());
       <span class="ellipsis">{{ status.text }}</span>
     </div>
     <div class="spacer" data-tauri-drag-region />
+    <NotificationBell />
     <div class="pill controls">
       <button class="chip-btn" :title="maximized ? 'Restore' : 'Maximize'" @click="win.toggleMaximize()">
         <img :src="icons.expand" class="icon" alt="" />

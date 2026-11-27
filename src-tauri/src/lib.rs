@@ -3,6 +3,7 @@ mod content;
 mod crash;
 mod diagnostics;
 mod error;
+mod files;
 mod game;
 mod horizon;
 mod instances;
@@ -468,6 +469,54 @@ async fn skin_upload(account_id: String, skin_id: String) -> Result<Vec<auth::Pu
 }
 
 #[tauri::command]
+async fn launch_log(id: String, started: u64, crashed: bool) -> Result<files::LaunchLog> {
+    files::launch_log(&id, started, crashed)
+}
+
+#[tauri::command]
+async fn screenshots_list(app: tauri::AppHandle, id: String) -> Result<Vec<files::Screenshot>> {
+    let dir = files::screenshots_dir(&id)?;
+    let _ = app.asset_protocol_scope().allow_directory(&dir, false);
+    files::screenshots(&id)
+}
+
+#[tauri::command]
+async fn screenshot_delete(id: String, name: String) -> Result<()> {
+    files::delete_screenshot(&id, &name)
+}
+
+#[tauri::command]
+async fn worlds_list(id: String) -> Result<Vec<files::World>> {
+    files::worlds(&id)
+}
+
+#[tauri::command]
+async fn datapacks_list(id: String, world: String) -> Result<Vec<files::Datapack>> {
+    files::datapacks(&id, &world)
+}
+
+#[tauri::command]
+async fn datapack_import(id: String, world: String, paths: Vec<String>) -> Result<usize> {
+    files::import_datapacks(&id, &world, paths)
+}
+
+#[tauri::command]
+async fn datapack_remove(id: String, world: String, name: String) -> Result<()> {
+    files::remove_datapack(&id, &world, &name)
+}
+
+#[tauri::command]
+async fn account_capes(account_id: String) -> Result<Vec<files::Cape>> {
+    files::capes(&account_id).await
+}
+
+#[tauri::command]
+async fn account_set_cape(account_id: String, cape_id: Option<String>) -> Result<Vec<auth::PublicAccount>> {
+    files::set_cape(&account_id, cape_id.as_deref()).await?;
+    Ok(auth::list())
+}
+
+#[tauri::command]
 async fn news_list(source: String) -> Result<Vec<news::NewsItem>> {
     if source == "zip" {
         news::zip_news().await
@@ -680,6 +729,15 @@ pub fn run() {
             skin_texture,
             skin_default,
             skin_upload,
+            launch_log,
+            screenshots_list,
+            screenshot_delete,
+            worlds_list,
+            datapacks_list,
+            datapack_import,
+            datapack_remove,
+            account_capes,
+            account_set_cape,
             news_list,
             optimize_preset,
             update_check,

@@ -58,6 +58,44 @@ export interface PlaySession {
   exit_code: number | null;
 }
 
+export interface LaunchLog {
+  found: boolean;
+  path: string;
+  lines: string[];
+  summary: string;
+}
+
+export interface Screenshot {
+  name: string;
+  path: string;
+  size: number;
+  modified: number;
+}
+
+export interface World {
+  folder: string;
+  name: string;
+  lastPlayed: number;
+  mode: string;
+  version: string;
+  hardcore: boolean;
+  icon: string | null;
+  datapacks: number;
+}
+
+export interface Datapack {
+  name: string;
+  size: number;
+  folder: boolean;
+}
+
+export interface Cape {
+  id: string;
+  alias: string;
+  url: string;
+  active: boolean;
+}
+
 export interface Instance {
   id: string;
   name: string;
@@ -401,6 +439,15 @@ export const api = {
   skinTexture: (url: string) => invoke<string>("skin_texture", { url }),
   defaultSkin: (variant: string) => invoke<string>("skin_default", { variant }),
   uploadSkin: (accountId: string, skinId: string) => invoke<Account[]>("skin_upload", { accountId, skinId }),
+  launchLog: (id: string, started: number, crashed: boolean) => invoke<LaunchLog>("launch_log", { id, started, crashed }),
+  screenshots: (id: string) => invoke<Screenshot[]>("screenshots_list", { id }),
+  deleteScreenshot: (id: string, name: string) => invoke<void>("screenshot_delete", { id, name }),
+  worlds: (id: string) => invoke<World[]>("worlds_list", { id }),
+  datapacks: (id: string, world: string) => invoke<Datapack[]>("datapacks_list", { id, world }),
+  importDatapacks: (id: string, world: string, paths: string[]) => invoke<number>("datapack_import", { id, world, paths }),
+  removeDatapack: (id: string, world: string, name: string) => invoke<void>("datapack_remove", { id, world, name }),
+  capes: (accountId: string) => invoke<Cape[]>("account_capes", { accountId }),
+  setCape: (accountId: string, capeId: string | null) => invoke<Account[]>("account_set_cape", { accountId, capeId }),
   news: (source: "zip" | "minecraft") => invoke<NewsItem[]>("news_list", { source }),
   optimizePreset: (minecraft: string, loader: Loader) => invoke<OptimizePreset>("optimize_preset", { minecraft, loader }),
   checkUpdate: () => invoke<UpdateStatus>("update_check"),

@@ -105,3 +105,23 @@ export function face(dataUrl: string): Promise<string> {
   }
   return pending;
 }
+
+const capes = new Map<string, Promise<string>>();
+
+export function capeFront(dataUrl: string): Promise<string> {
+  let pending = capes.get(dataUrl);
+  if (!pending) {
+    pending = loadImage(dataUrl).then((img) => {
+      const k = img.width / 64;
+      const canvas = document.createElement("canvas");
+      canvas.width = 10;
+      canvas.height = 16;
+      const ctx = canvas.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, k, k, 10 * k, 16 * k, 0, 0, 10, 16);
+      return canvas.toDataURL();
+    });
+    capes.set(dataUrl, pending);
+  }
+  return pending;
+}

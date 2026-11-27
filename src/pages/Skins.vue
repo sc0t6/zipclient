@@ -2,8 +2,8 @@
 import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { IdleAnimation, SkinViewer } from "skinview3d";
-import { api, errorText, type SkinEntry } from "../api";
-import { bodyFront, looksSlim, texture } from "../skin";
+import { api, errorText, type Cape, type SkinEntry } from "../api";
+import { bodyFront, capeFront, looksSlim, texture } from "../skin";
 import { useApp } from "../stores/app";
 import { useNotify } from "../stores/notify";
 import { useSettings } from "../stores/settings";
@@ -37,6 +37,11 @@ const animate = ref(false);
 const autoRotate = ref(false);
 const wearing = ref("");
 const filter = ref("");
+const view = ref<"skins" | "capes">("skins");
+const capes = ref<(Cape & { dataUrl: string; thumb: string })[]>([]);
+const capesState = ref<"idle" | "loading" | "ready" | "error">("idle");
+const capePreview = ref<string | null>(null);
+const equipping = ref<string | null>(null);
 let idleTimer = 0;
 let resizeObserver: ResizeObserver | null = null;
 
@@ -50,6 +55,71 @@ const shown = computed(() => {
   return q ? cards.value.filter((c) => c.name.toLowerCase().includes(q)) : cards.value;
 });
 const preview = computed(() => cards.value.find((c) => c.id === previewId.value) ?? cards.value[0] ?? null);
+const activeCape = computed(() => capes.value.find((c) => c.active)?.id ?? "");
+const shownCape = computed(() => (capePreview.value === null ? activeCape.value : capePreview.value));
+
+async function loadCapes() {
+  const a = account.value;
+  capes.value = [];
+  capePreview.value = null;
+  if (a?.kind !== "microsoft") {
+    capesState.value = "idle";
+    applyCape();
+    return;
+  }
+  capesState.value = "loading";
+  try {
+    const list = await api.capes(a.id);
+    const loaded = await Promise.all(
+      list.map(async (c) => {
+        const dataUrl = c.url ? await texture(c.url).catch(() => "") : "";
+        return { ...c, dataUrl, thumb: dataUrl ? await capeFront(dataUrl).catch(() => "") : "" };
+      }),
+    );
+    if (account.value?.id !== a.id) return;
+    capes.value = loaded;
+    capesState.value = "ready";
+  } catch {
+    capesState.value = "error";
+  }
+  applyCape();
+}
+
+function applyCape() {
+  const v = viewer.value;
+  if (!v) return;
+  const cape = capes.value.find((c) => c.id === shownCape.value);
+  if (cape?.dataUrl) v.loadCape(cape.dataUrl).then(wake);
+  else {
+    v.resetCape();
+    wake();
+  }
+}
+
+function previewCape(id: string) {
+  capePreview.value = id;
+  if (viewer.value && id) viewer.value.playerObject.rotation.y = Math.PI + 0.45;
+  applyCape();
+}
+
+async function equipCape(id: string) {
+  const a = account.value;
+  if (!a) return;
+  equipping.value = id;
+  try {
+    app.accounts = await api.setCape(a.id, id || null);
+    capes.value = capes.value.map((c) => ({ ...c, active: c.id === id }));
+    capePreview.value = null;
+    const name = capes.value.find((c) => c.id === id)?.alias ?? "Cape";
+    notify.success(id ? "Cape equipped" : "Cape hidden", id ? `${name} now shows on your profile.` : "Your profile shows no cape now.");
+  } catch (e) {
+    notify.error("Cape change failed", errorText(e));
+  } finally {
+    equipping.value = null;
+  }
+  applyCape();
+}
+
 const selectedId = computed(() => {
   const a = account.value;
   if (!a) return "";
@@ -198,11 +268,13 @@ watch(autoRotate, (on) => {
 watch(account, () => {
   loadOriginal();
   previewId.value = "original";
+  loadCapes();
 });
 
 onMounted(async () => {
   await Promise.all([loadOriginal(), loadLibrary()]);
   createViewer();
+  loadCapes();
 });
 
 onActivated(() => {
@@ -260,13 +332,69 @@ onUnmounted(() => {
     <section class="library">
       <header class="lib-head">
         <div class="lib-title">
-          <h2>Skins</h2>
-          <small>{{ cards.length }} in your library</small>
+          <div class="switch">
+            <button :class="{ on: view === 'skins' }" @click="view = 'skins'">Skins</button>
+            <button :class="{ on: view === 'capes' }" @click="view = 'capes'">Capes</button>
+          </div>
+          <small v-if="view === 'skins'">{{ cards.length }} in your library</small>
+          <small v-else>{{ capes.length ? `${capes.length} owned` : "Wardrobe" }}</small>
         </div>
-        <input v-model="filter" class="field pill search" placeholder="Search skins.." />
-        <button class="btn primary" @click="importSkin">+ Import skin</button>
+        <template v-if="view === 'skins'">
+          <input v-model="filter" class="field pill search" placeholder="Search skins.." />
+          <button class="btn primary" @click="importSkin">+ Import skin</button>
+        </template>
+        <button v-else-if="account?.kind === 'microsoft'" class="btn" :disabled="capesState === 'loading'" @click="loadCapes">Refresh</button>
       </header>
-      <div class="grid scroll">
+      <div v-if="view === 'capes'" class="grid scroll">
+        <template v-if="account?.kind === 'microsoft' && capesState === 'ready'">
+          <div class="card" :class="{ previewing: shownCape === '', worn: activeCape === '' }" @click="previewCape('')">
+            <div class="thumb"><span class="none">∅</span></div>
+            <div class="card-info">
+              <div class="card-name">No cape</div>
+              <div class="card-meta">
+                <span v-if="activeCape === ''" class="worn-tag">Equipped</span>
+                <span v-else>Hide your cape</span>
+              </div>
+            </div>
+            <div class="card-actions" @click.stop>
+              <button v-if="activeCape !== ''" class="mini wear" :disabled="equipping !== null" @click="equipCape('')">
+                <span v-if="equipping === ''" class="spinner" />
+                <template v-else>Equip</template>
+              </button>
+            </div>
+          </div>
+          <div v-for="c in capes" :key="c.id" class="card" :class="{ previewing: shownCape === c.id, worn: c.active }" @click="previewCape(c.id)">
+            <div class="thumb cape-thumb">
+              <img v-if="c.thumb" :src="c.thumb" class="pixel" alt="" />
+              <span v-else class="none">?</span>
+            </div>
+            <div class="card-info">
+              <div class="card-name ellipsis" :title="c.alias">{{ c.alias }}</div>
+              <div class="card-meta">
+                <span v-if="c.active" class="worn-tag">Equipped</span>
+                <span v-else>Owned</span>
+              </div>
+            </div>
+            <div class="card-actions" @click.stop>
+              <button v-if="!c.active" class="mini wear" :disabled="equipping !== null" @click="equipCape(c.id)">
+                <span v-if="equipping === c.id" class="spinner" />
+                <template v-else>Equip</template>
+              </button>
+            </div>
+          </div>
+          <div v-if="!capes.length" class="empty wide">This account owns no capes yet. Capes come from events, Minecraft Live and some game editions.</div>
+        </template>
+        <div v-else-if="capesState === 'loading'" class="empty wide"><span class="spinner" /></div>
+        <div v-else-if="capesState === 'error'" class="empty wide">
+          Could not load capes from Minecraft.
+          <button class="btn" @click="loadCapes">Try again</button>
+        </div>
+        <div v-else class="empty wide">
+          Capes come from your Microsoft account. Sign in with Microsoft to change them here.
+          <button class="btn primary" @click="app.loginOpen = true">Sign in</button>
+        </div>
+      </div>
+      <div v-else class="grid scroll">
         <div
           v-for="card in shown"
           :key="card.id"
@@ -302,7 +430,8 @@ onUnmounted(() => {
         </button>
         <div v-if="filter && !shown.length" class="empty">No skins match that search.</div>
       </div>
-      <p class="hint">
+      <p v-if="view === 'capes'" class="hint">Click a cape to try it on the model. Equip sends it to your Minecraft profile.</p>
+      <p v-else class="hint">
         Drag the model to rotate, scroll to zoom.
         <template v-if="account?.kind === 'microsoft'">Wearing a skin uploads it to your Minecraft profile.</template>
         <template v-else-if="account">Offline profiles keep skins inside Zip.</template>
@@ -490,6 +619,67 @@ onUnmounted(() => {
 .lib-title small {
   font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-faint);
+}
+
+.switch {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  margin-bottom: 4px;
+}
+
+.switch button {
+  padding: 5px 14px;
+  border-radius: 9px;
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 650;
+  color: var(--text-dim);
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.switch button:hover {
+  color: var(--text);
+}
+
+.switch button.on {
+  background: var(--accent-bg-hover);
+  color: var(--accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.lib-title small {
+  display: block;
+}
+
+.cape-thumb img {
+  height: 68%;
+  aspect-ratio: 10 / 16;
+  border-radius: 2px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.none {
+  font-size: calc(30px * var(--text-scale, 1));
+  color: var(--text-faint);
+}
+
+.card.worn:not(.previewing) {
+  border-color: var(--accent-border);
+}
+
+.empty.wide {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: var(--text-dim);
+  font-size: calc(12px * var(--text-scale, 1));
+  text-align: center;
 }
 
 .search {
