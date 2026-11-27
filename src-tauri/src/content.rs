@@ -632,6 +632,37 @@ fn installed_projects(game_dir: &Path) -> HashSet<String> {
         .collect()
 }
 
+async fn update_partner(instance: &Instance, game_dir: &Path, folder: &str, blocker: &Path, target: &Path, replaced: &[PathBuf], reporter: &Reporter) -> Option<(String, String, IndexEntry)> {
+    let old = blocker.strip_prefix(game_dir).ok()?.to_string_lossy().replace('\\', "/");
+    let entry = load_index(game_dir).files.get(&old)?.clone();
+    if !matches!(entry.source.as_str(), "modrinth" | "curseforge") {
+        return None;
+    }
+    let list = versions(&entry.source, &entry.project_id, "mod", &instance.minecraft, &instance.loader).await.ok()?;
+    let stable_only = list.iter().find(|v| v.id == entry.version_id).map_or(true, |v| v.channel == "release");
+    let mut gone = replaced.to_vec();
+    gone.push(blocker.to_path_buf());
+    for v in list.iter().take_while(|v| v.id != entry.version_id).filter(|v| !v.url.is_empty() && (!stable_only || v.channel == "release")).take(3) {
+        let name = Path::new(&v.file_name).file_name()?.to_string_lossy().to_string();
+        let relative = format!("{folder}/{name}");
+        let path = storage::safe_join(game_dir, &relative).ok()?;
+        if path.exists() {
+            continue;
+        }
+        reporter.phase(&format!("Downloading {name}"));
+        let item = DownloadItem::new(v.url.clone(), path.clone(), (!v.sha1.is_empty()).then(|| v.sha1.clone()), (v.size > 0).then_some(v.size));
+        if net::download_all(vec![item], reporter.progress(), true).await.is_err() {
+            continue;
+        }
+        if crate::modcheck::check(&game_dir.join(folder), &[target.to_path_buf(), path.clone()], &gone).is_none() {
+            let updated = IndexEntry { version_id: v.id.clone(), version_number: v.version_number.clone(), sha1: v.sha1.clone(), size: v.size, local_checked: false, ..entry };
+            return Some((old, relative, updated));
+        }
+        let _ = std::fs::remove_file(&path);
+    }
+    None
+}
+
 pub async fn install(
     instance_id: &str,
     source: &str,
@@ -711,17 +742,29 @@ pub async fn install(
             .filter(|(path, e)| e.project_id == project && **path != relative)
             .map(|(p, _)| p.clone())
             .collect();
+        let mut partner = None;
         if file_kind == "mod" && !existed && matches!(instance.loader.as_str(), "fabric" | "quilt") && safe_name.ends_with(".jar") {
             let replaced: Vec<PathBuf> = previous.iter().map(|p| game_dir.join(p)).collect();
-            if let Some(problem) = crate::modcheck::conflict(&game_dir.join(folder), &target, &replaced) {
-                let _ = std::fs::remove_file(&target);
-                return Err(Error::msg(problem));
+            if let Some(problem) = crate::modcheck::check(&game_dir.join(folder), std::slice::from_ref(&target), &replaced) {
+                if let Some(blocker) = &problem.blocker {
+                    partner = update_partner(&instance, &game_dir, folder, blocker, &target, &replaced, reporter).await;
+                }
+                if partner.is_none() {
+                    let _ = std::fs::remove_file(&target);
+                    return Err(Error::msg(problem.message));
+                }
             }
         }
         for old in previous {
             let _ = std::fs::remove_file(game_dir.join(&old));
             let _ = std::fs::remove_file(game_dir.join(format!("{old}.disabled")));
             index.files.remove(&old);
+        }
+        if let Some((old, relative, entry)) = partner {
+            let _ = std::fs::remove_file(game_dir.join(&old));
+            index.files.remove(&old);
+            outcome.installed.push(entry.title.clone());
+            index.files.insert(relative, entry);
         }
         let (title, icon) = project_meta(source, &project).await;
         index.files.insert(
@@ -1224,7 +1267,7 @@ async fn horizon_updates(instance: &Instance, files: &[InstalledFile], index: &C
         .collect()
 }
 
-pub async fn update_file(instance_id: &str, relative: &str, version_id: &str, reporter: &Reporter) -> Result<()> {
+pub async fn update_file(instance_id: &str, relative: &str, version_id: &str, reporter: &Reporter) -> Result<Vec<String>> {
     let instance = instances::get(instance_id)?;
     let game_dir = instances::game_dir(&instance)?;
     let index = load_index(&game_dir);
@@ -1238,7 +1281,7 @@ pub async fn update_file(instance_id: &str, relative: &str, version_id: &str, re
             let _ = set_enabled(instance_id, path, false);
         }
     }
-    Ok(())
+    Ok(outcome.installed)
 }
 
 #[cfg(test)]

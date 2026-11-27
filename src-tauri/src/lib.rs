@@ -420,7 +420,7 @@ async fn content_updates(instance_id: String, kind: String) -> Result<Vec<conten
 }
 
 #[tauri::command]
-async fn content_update(app: AppHandle, instance_id: String, path: String, version_id: String) -> Result<()> {
+async fn content_update(app: AppHandle, instance_id: String, path: String, version_id: String) -> Result<Vec<String>> {
     let reporter = Reporter::new(&app, format!("update:{path}"));
     let result = content::update_file(&instance_id, &path, &version_id, &reporter).await;
     reporter.phase("");

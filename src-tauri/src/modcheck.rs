@@ -166,30 +166,37 @@ fn label(m: &FabricMod) -> String {
     format!("{} {}", title(m), short(&m.version))
 }
 
-pub fn conflict(mods_dir: &Path, new_jar: &Path, replaced: &[PathBuf]) -> Option<String> {
-    let added = read_jar(new_jar);
-    let incoming = added.first()?;
-    let mut installed: Vec<FabricMod> = Vec::new();
+pub struct Problem {
+    pub message: String,
+    pub blocker: Option<PathBuf>,
+}
+
+pub fn check(mods_dir: &Path, new_jars: &[PathBuf], replaced: &[PathBuf]) -> Option<Problem> {
+    let incoming: Vec<(PathBuf, FabricMod)> = new_jars.iter().filter_map(|p| read_jar(p).into_iter().next().map(|m| (p.clone(), m))).collect();
+    let mut installed: Vec<(PathBuf, FabricMod)> = Vec::new();
     for entry in std::fs::read_dir(mods_dir).ok()?.flatten() {
         let path = entry.path();
-        if path == new_jar || replaced.contains(&path) || path.extension().and_then(|e| e.to_str()) != Some("jar") {
+        if new_jars.contains(&path) || replaced.contains(&path) || path.extension().and_then(|e| e.to_str()) != Some("jar") {
             continue;
         }
-        installed.extend(read_jar(&path).into_iter().take(1));
+        installed.extend(read_jar(&path).into_iter().take(1).map(|m| (path.clone(), m)));
     }
-    let ids: Vec<&str> = std::iter::once(incoming.id.as_str()).chain(incoming.provides.iter().map(String::as_str)).collect();
-    for m in &installed {
-        let mine: Vec<&str> = std::iter::once(m.id.as_str()).chain(m.provides.iter().map(String::as_str)).collect();
-        let blocked = incoming.breaks.iter().any(|(dep, p)| mine.contains(&dep.as_str()) && satisfies(&m.version, p))
-            || m.breaks.iter().any(|(dep, p)| ids.contains(&dep.as_str()) && satisfies(&incoming.version, p));
-        if blocked {
-            return Some(format!("{} does not work with {}, which is installed. Keep the current version or update {} first.", label(incoming), label(m), title(m)));
-        }
-        if let Some((_, p)) = m.depends.iter().find(|(dep, p)| ids.contains(&dep.as_str()) && !satisfies(&incoming.version, p)) {
-            return Some(format!("{} needs {} {}, not {}. Keep the current version or update {} first.", label(m), incoming.id, p.join(" or "), short(&incoming.version), title(m)));
-        }
-        if let Some((_, p)) = incoming.depends.iter().find(|(dep, p)| mine.contains(&dep.as_str()) && !satisfies(&m.version, p)) {
-            return Some(format!("{} needs {} {}, but {} is installed. Update {} first.", label(incoming), title(m), p.join(" or "), short(&m.version), title(m)));
+    for (own, new) in &incoming {
+        let ids: Vec<&str> = std::iter::once(new.id.as_str()).chain(new.provides.iter().map(String::as_str)).collect();
+        for (path, m) in installed.iter().chain(incoming.iter().filter(|(p, _)| p != own)) {
+            let blocker = (!new_jars.contains(path)).then(|| path.clone());
+            let mine: Vec<&str> = std::iter::once(m.id.as_str()).chain(m.provides.iter().map(String::as_str)).collect();
+            let blocked = new.breaks.iter().any(|(dep, p)| mine.contains(&dep.as_str()) && satisfies(&m.version, p))
+                || m.breaks.iter().any(|(dep, p)| ids.contains(&dep.as_str()) && satisfies(&new.version, p));
+            if blocked {
+                return Some(Problem { message: format!("{} does not work with {}, which is installed. Keep the current version or update {} first.", label(new), label(m), title(m)), blocker });
+            }
+            if let Some((_, p)) = m.depends.iter().find(|(dep, p)| ids.contains(&dep.as_str()) && !satisfies(&new.version, p)) {
+                return Some(Problem { message: format!("{} needs {} {}, not {}. Keep the current version or update {} first.", label(m), new.id, p.join(" or "), short(&new.version), title(m)), blocker });
+            }
+            if let Some((_, p)) = new.depends.iter().find(|(dep, p)| mine.contains(&dep.as_str()) && !satisfies(&m.version, p)) {
+                return Some(Problem { message: format!("{} needs {} {}, but {} is installed. Update {} first.", label(new), title(m), p.join(" or "), short(&m.version), title(m)), blocker });
+            }
         }
     }
     None
@@ -198,6 +205,10 @@ pub fn conflict(mods_dir: &Path, new_jar: &Path, replaced: &[PathBuf]) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn conflict(mods_dir: &Path, new_jar: &Path, replaced: &[PathBuf]) -> Option<String> {
+        check(mods_dir, &[new_jar.to_path_buf()], replaced).map(|p| p.message)
+    }
 
     fn s(v: &[&str]) -> Vec<String> {
         v.iter().map(|x| x.to_string()).collect()
@@ -250,5 +261,20 @@ mod tests {
         std::fs::remove_file(&new).unwrap();
         let msg = conflict(mods, &bbe, &[]).unwrap();
         assert!(msg.starts_with("Better Block Entities 1.4.1 needs Sodium >=0.9.3-beta.3, but 0.9.2 is installed"), "{msg}");
+    }
+
+    #[test]
+    fn pinned_pair_updates_together() {
+        let dir = tempfile::tempdir().unwrap();
+        let mods = dir.path();
+        let sodium = jar(mods, "sodium-b1.jar", r#"{"id":"sodium","name":"Sodium","version":"0.8.15-beta.1+mc1.21.11"}"#);
+        let extra = jar(mods, "extra-b1.jar", r#"{"id":"sodium_extra","name":"Sodium Extra","version":"0.9.6-beta.1+mc1.21.11","depends":{"sodium":"0.8.15-beta.1+mc1.21.11"}}"#);
+        let sodium2 = jar(mods, "sodium-b2.jar", r#"{"id":"sodium","name":"Sodium","version":"0.8.15-beta.2+mc1.21.11"}"#);
+        let problem = check(mods, std::slice::from_ref(&sodium2), std::slice::from_ref(&sodium)).unwrap();
+        assert_eq!(problem.blocker.as_deref(), Some(extra.as_path()));
+        let extra2 = jar(mods, "extra-b2.jar", r#"{"id":"sodium_extra","name":"Sodium Extra","version":"0.9.6-beta.2+mc1.21.11","depends":{"sodium":"0.8.15-beta.2+mc1.21.11"}}"#);
+        assert!(check(mods, &[sodium2.clone(), extra2.clone()], &[sodium.clone(), extra.clone()]).is_none());
+        let problem = check(mods, std::slice::from_ref(&extra2), std::slice::from_ref(&extra)).unwrap();
+        assert_eq!(problem.blocker.as_deref(), Some(sodium.as_path()));
     }
 }

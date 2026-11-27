@@ -1,6 +1,6 @@
 [package]
 name = "zip-launcher"
-version = "2.4.1"
+version = "2.4.2"
 description = "Zip Minecraft Launcher"
 authors = ["Krizuvo"]
 license = "GPL-3.0-only"

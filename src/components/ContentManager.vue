@@ -209,12 +209,12 @@ async function applyUpdate(file: InstalledFile) {
   if (!info) return;
   busy[file.path] = true;
   try {
-    await api.updateContent(props.instance.id, file.path, info.versionId);
-    const next = { ...updates.value };
-    delete next[file.path.replace(/\.disabled$/, "")];
-    updates.value = next;
-    notify.success("Updated", `${file.title} → ${info.latest}`);
+    const changed = await api.updateContent(props.instance.id, file.path, info.versionId);
+    const also = changed.filter((name) => name !== file.title);
+    notify.success("Updated", `${file.title} → ${info.latest}${also.length ? `. Also updated ${also.join(", ")} so they keep working together.` : ""}`);
     await load(false);
+    const keep = new Set(files.value.map((f) => f.path.replace(/\.disabled$/, "")));
+    updates.value = Object.fromEntries(Object.entries(updates.value).filter(([path]) => keep.has(path) && path !== file.path.replace(/\.disabled$/, "")));
   } catch (e) {
     notify.error("Update failed", errorText(e));
   } finally {
@@ -223,7 +223,9 @@ async function applyUpdate(file: InstalledFile) {
 }
 
 async function updateAll() {
-  for (const file of files.value.filter((f) => updateFor(f))) await applyUpdate(file);
+  for (const file of files.value.filter((f) => updateFor(f))) {
+    if (files.value.some((f) => f.path === file.path)) await applyUpdate(file);
+  }
 }
 
 async function search(reset = true) {
